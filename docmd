@@ -159,7 +159,7 @@ OPTIONS:
   -B, --database         Knob to specify database operations
   -F, --firewall         Knob to specify database operations
   -C, --create           Create a droplet, database, or firewall
-  -D, --delete           Delete a droplet, databsae, or firewal
+  -D, --delete           Delete a droplet, databsae, or firewall
   -L, --list             List all the droplets, databases, or firewalls
   -i, --droplet-image    Specify the droplet image (default: ${OPT_DROPLET_IMAGE})
   -r, --droplet-region   Specify the droplet region (default: ${OPT_DROPLET_REGION})

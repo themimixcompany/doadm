@@ -34,7 +34,7 @@ Scripts for managing DigitalOcean droplets, databases, and firewalls.
 
 Before using this script, you must first authenticate with DigitalOcean. To do so, run:
 
-    docmd init
+    docmd -I
 
 
 ### <a name="droplets">Droplets</a>

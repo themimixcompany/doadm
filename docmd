@@ -5,7 +5,7 @@ set -o pipefail
 
 readonly SELF=$(basename "${BASH_SOURCE[0]}")
 readonly OS=$(uname)
-readonly VERSION=1.0.3
+readonly VERSION=1.0.4
 
 readonly OPT_BASE_NAME=${SELF}
 readonly OPT_GLOBAL_CONFIG=/usr/local/etc/${OPT_BASE_NAME}rc
@@ -75,7 +75,7 @@ function debug () {
 function parse_arguments () {
   debug ${FUNCNAME[0]} "$@"
 
-  local opts=$(getopt -n "${SELF}" --options hdvn:OBFCDLi:r:s:E:R:S:V:N:a:Ap: --longoptions help,debug,verbose,init,droplet,database,firewall,create,delete,list,droplet-image:,droplet-region:,droplet-size:,database-engine:,database-region:,database-size:,database-version:,droplet-names:,addresses:,add-self-address,ports: -- "$@")
+  local opts=$(getopt -n "${SELF}" --options hdvIn:OBFCDLi:r:s:E:R:S:V:N:a:Ap: --longoptions help,debug,verbose,init,droplet,database,firewall,create,delete,list,droplet-image:,droplet-region:,droplet-size:,database-engine:,database-region:,database-size:,database-version:,droplet-names:,addresses:,add-self-address,ports: -- "$@")
 
   if [[ $? != 0 ]]; then
     error "Failed to parse arguments. Exiting."
@@ -88,7 +88,7 @@ function parse_arguments () {
       (-h|--help) OPT_HELP=true; shift ;;
       (-d|--debug) OPT_DEBUG=true; shift ;;
       (-v|--verbose) OPT_VERBOSE=true; shift ;;
-      (--init) OPT_INIT=true; shift ;;
+      (-I|--init) OPT_INIT=true; shift ;;
       (-n|--name) OPT_NAME=$2; shift 2 ;;
       (-O|--droplet) OPT_DROPLET=true; shift ;;
       (-B|--database) OPT_DATABASE=true; shift ;;
@@ -154,7 +154,7 @@ OPTIONS:
   -d, --debug            Enable debugging mode
   -v, --verbose          Enable verbose output
   -n, --name             The name of the droplet, database, or firewall to manage
-      --init             Run the initialization commands
+  -I, --init             Run the initialization commands
   -O, --droplet          Knob to specify droplet operations
   -B, --database         Knob to specify database operations
   -F, --firewall         Knob to specify database operations

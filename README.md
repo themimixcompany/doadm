@@ -47,7 +47,7 @@ To delete the Ubuntu droplet `mimix-server-1`, run:
 
     docmd -ODn mimix-server-1
 
-To list all droplets, run:
+To display the list of droplets, run:
 
     docmd -OL
 
@@ -62,7 +62,7 @@ To delete the PostgreSQL database `mimix-db-1`, run:
 
     docmd -BDn mimix-db-1
 
-To list all databases, run:
+To display the list of databases, run:
 
     docmd -BL
 

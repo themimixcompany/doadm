@@ -5,7 +5,7 @@ set -o pipefail
 
 readonly SELF=$(basename "${BASH_SOURCE[0]}")
 readonly OS=$(uname)
-readonly VERSION=1.0.1
+readonly VERSION=1.0.2
 
 readonly OPT_BASE_NAME=${SELF}
 readonly OPT_GLOBAL_CONFIG=/usr/local/etc/${OPT_BASE_NAME}rc
@@ -21,6 +21,8 @@ OPT_CONFIG=
 OPT_NAME=
 OPT_DROPLET=
 OPT_DATABASE=
+OPT_FIREWALL=
+
 OPT_CREATE=
 OPT_DELETE=
 OPT_LIST=
@@ -33,6 +35,14 @@ OPT_DATABASE_ENGINE=pg
 OPT_DATABASE_REGION=nyc1
 OPT_DATABASE_SIZE=db-s-1vcpu-1gb
 OPT_DATABASE_VERSION=11
+
+OPT_DROPLET_NAMES=
+OPT_FIREWALL_NAME=
+OPT_ADDRESSES=
+OPT_ADD_SELF_ADDRESS=
+OPT_PORTS=
+
+OPT_OUTBOUND_RULES="protocol:tcp,ports:all,address:0.0.0.0/0,address:::/0 protocol:udp,ports:all,address:0.0.0.0/0,address:::/0"
 
 function error () {
   if [[ "${OS}" == "Darwin" ]]; then
@@ -63,7 +73,7 @@ function debug () {
 function parse_arguments () {
   debug ${FUNCNAME[0]} "$@"
 
-  local opts=$(getopt -n "${SELF}" --options hdvn:OBCDLi:r:s:E:R:S:V: --longoptions help,debug,verbose,droplet,database,create,delete,list,droplet-image:,droplet-region:,droplet-size:,database-engine:,database-region:,database-size:,database-version: -- "$@")
+  local opts=$(getopt -n "${SELF}" --options hdvn:OBFCDLi:r:s:E:R:S:V:N:a:Ap: --longoptions help,debug,verbose,droplet,database,firewall,create,delete,list,droplet-image:,droplet-region:,droplet-size:,database-engine:,database-region:,database-size:,database-version:,droplet-names:,addresses:,add-self-address,ports: -- "$@")
 
   if [[ $? != 0 ]]; then
     error "Failed to parse arguments. Exiting."
@@ -79,6 +89,7 @@ function parse_arguments () {
       (-n|--name) OPT_NAME=$2; shift 2 ;;
       (-O|--droplet) OPT_DROPLET=true; shift ;;
       (-B|--database) OPT_DATABASE=true; shift ;;
+      (-F|--firewall) OPT_FIREWALL=true; shift ;;
       (-C|--create) OPT_CREATE=true; shift ;;
       (-D|--delete) OPT_DELETE=true; shift ;;
       (-L|--list) OPT_LIST=true; shift ;;
@@ -89,6 +100,10 @@ function parse_arguments () {
       (-R|--database-region) OPT_DATABASE_REGION=$2; shift 2 ;;
       (-S|--database-size) OPT_DATABASE_SIZE=$2; shift 2 ;;
       (-V|--database-version) OPT_DATABASE_VERSION=$2; shift 2 ;;
+      (-N|--droplet-names) OPT_DROPLET_NAMES=$2; shift 2 ;;
+      (-a|--addresses) OPT_ADDRESSES=$2; shift 2 ;;
+      (-A|--add-self-address) OPT_ADD_SELF_ADDRESS=true; shift ;;
+      (-p|--ports) OPT_PORTS=$2; shift 2 ;;
       (--) shift; break ;;
       (*) break ;;
     esac
@@ -101,18 +116,21 @@ function process_arguments () {
   if [[ -n "${OPT_HELP}" || "${#}" -lt 1 ]]; then
     display_usage
   elif [[ -n "${OPT_LIST}" ]]; then
-    if [[ -n "${OPT_DROPLET}" && -z "${OPT_DATABASE}" ]]; then
+    if [[ -n "${OPT_DROPLET}" && -z "${OPT_DATABASE}" && -z "${OPT_FIREWALL}" ]]; then
       list_droplets
       exit 0
-    elif [[ -n "${OPT_DATABASE}" && -z "${OPT_DROPLET}" ]]; then
+    elif [[ -n "${OPT_DATABASE}" && -z "${OPT_DROPLET}" && -z "${OPT_FIREWALL}"]]; then
       list_databases
+      exit 0
+    elif [[ -n "${OPT_FIREWALL}" && -z "${OPT_DROPLET}" && -z "${OPT_DATABASE}" ]]; then
+      list_firewalls
       exit 0
     else
       display_usage
     fi
   elif [[ -z "${OPT_NAME}" ]]; then
     display_usage
-  elif [[ -z "${OPT_DROPLET}" && -z "${OPT_DATABASE}" ]]; then
+  elif [[ -z "${OPT_DROPLET}" && -z "${OPT_DATABASE}" && -z "${OPT_FIREWALL}" ]]; then
     display_usage
   else
     return 0
@@ -129,12 +147,13 @@ OPTIONS:
   -h, --help             Show this help
   -d, --debug            Enable debugging mode
   -v, --verbose          Enable verbose output
-  -n, --name             The name of the droplet or database to manage
+  -n, --name             The name of the droplet, database, or firewall to manage
   -O, --droplet          Knob to specify droplet operations
   -B, --database         Knob to specify database operations
-  -C, --create           Create a droplet or database
-  -D, --delete           Delete a droplet or database
-  -L, --list             List all the droplets or databases
+  -F, --firewall         Knob to specify database operations
+  -C, --create           Create a droplet, database, or firewall
+  -D, --delete           Delete a droplet, databsae, or firewal
+  -L, --list             List all the droplets, databases, or firewalls
   -i, --droplet-image    Specify the droplet image (default: ${OPT_DROPLET_IMAGE})
   -r, --droplet-region   Specify the droplet region (default: ${OPT_DROPLET_REGION})
   -s, --droplet-size     Specify the droplet size (default: ${OPT_DROPLET_SIZE})
@@ -142,6 +161,10 @@ OPTIONS:
   -R, --database-region  Specify the database region (default: ${OPT_DATABASE_REGION})
   -S, --database-size    Specify the database size (default: ${OPT_DATABASE_SIZE})
   -V, --database-version Specify the database version (default: ${OPT_DATABASE_VERSION})
+  -N, --droplet-names    A comma-separated list of droplets names to apply the firewall rules to
+  -a, --addresses        A comma-separated list of IP addresses to allow
+  -A, --add-self-address Add own public IP address to list of IP addresses to allow
+  -p, --ports            A comma-separated list of allowed ports on the droplets
 EOF
   exit 0
 }
@@ -234,7 +257,7 @@ function create_database () {
         --region "${OPT_DATABASE_REGION}" \
         --size "${OPT_DATABASE_SIZE}" \
         --version "${OPT_DATABASE_VERSION}" \
-        "${OPT_NAME}" | awk '{print $9}'
+        "${OPT_NAME}" | sed 1d | awk '{print $9}'
 }
 
 function delete_database () {
@@ -243,10 +266,92 @@ function delete_database () {
   doctl databases delete "$(get_database_id ${OPT_NAME})"
 }
 
+function list_firewalls () {
+  debug ${FUNCNAME[0]} "$@"
+
+  doctl compute firewall list | sed 1d | awk '{print $1 " " $2}' | column -t
+}
+
+function get_firewall_id () {
+  debug ${FUNCNAME[0]} "$@"
+
+  list_firewalls | awk "/[0-9]+\s+${1}/" | awk '{print $1}'
+}
+
+function extra_addresses () {
+  debug ${FUNCNAME[0]} "$@"
+
+  if [[ -n "${OPT_ADD_SELF_ADDRESS}" ]]; then
+    dig +short myip.opendns.com @resolver1.opendns.com
+  fi
+}
+
+function compose_addresses () {
+  debug ${FUNCNAME[0]} "$@"
+
+  local _extra=$(extra_addresses)
+  local extra=
+
+  if [[ -n "${_extra}" ]]; then
+    extra="address:$(extra_addresses),"
+  fi
+
+  local OIFS=${IFS}
+
+  IFS="," read -ra ADDRESSES <<< "${OPT_ADDRESSES}"
+
+  for a in ${ADDRESSES[@]}; do
+    echo -n "${extra}address:${a},"
+  done
+
+  IFS=${OIFS}
+}
+
+function compose_inbound_rules () {
+  debug ${FUNCNAME[0]} "$@"
+
+  local OIFS=${IFS}
+  IFS="," read -ra PORTS <<< "${OPT_PORTS}"
+
+  for p in ${PORTS[@]}; do
+    echo -n "protocol:tcp,ports:${p},$(compose_addresses | sed 's/,$//') "
+  done
+
+  IFS=${OIFS}
+}
+
+function create_firewall () {
+  debug ${FUNCNAME[0]} "$@"
+
+  local firewall_id="$(get_firewall_id ${OPT_NAME})"
+  local droplet_ids="$(get_droplet_ids ${OPT_DROPLET_NAMES} | sed 's/,$//')"
+  local inbound_rules="$(compose_inbound_rules | sed 's/\ $//')"
+
+  if [[ -n "${firewall_id}" ]]; then
+    doctl compute firewall update "${firewall_id}" \
+          --name "${OPT_NAME}" \
+          --droplet-ids "${droplet_ids}" \
+          --inbound-rules "${inbound_rules}" \
+          --outbound-rules "${OPT_OUTBOUND_RULES}"
+  else
+    doctl compute firewall create \
+          --name "${OPT_NAME}" \
+          --droplet-ids "${droplet_ids}" \
+          --inbound-rules "${inbound_rules}" \
+          --outbound-rules "${OPT_OUTBOUND_RULES}"
+  fi
+}
+
+function delete_firewall () {
+  debug ${FUNCNAME[0]} "$@"
+
+  doctl compute firewall delete "$(get_firewall_id ${OPT_NAME})"
+}
+
 function run () {
   debug ${FUNCNAME[0]} "$@"
 
-  if [[ -n "${OPT_NAME}" && -n "${OPT_DROPLET}" && -z "${OPT_DATABASE}" ]]; then
+  if [[ -n "${OPT_NAME}" && -n "${OPT_DROPLET}" && -z "${OPT_DATABASE}" && -z "${OPT_FIREWALL}" ]]; then
     if [[ -n "${OPT_CREATE}" && -z "${OPT_DELETE}" ]]; then
       create_droplet
     elif [[ -n "${OPT_DELETE}" && -z "${OPT_CREATE}" ]]; then
@@ -254,11 +359,19 @@ function run () {
     else
       display_usage
     fi
-  elif [[ -n "${OPT_NAME}" && -n "${OPT_DATABASE}" && -z "${OPT_DROPLET}" ]]; then
+  elif [[ -n "${OPT_NAME}" && -n "${OPT_DATABASE}" && -z "${OPT_DROPLET}" && -z "${OPT_FIREWALL}" ]]; then
     if [[ -n "${OPT_CREATE}" && -z "${OPT_DELETE}" ]]; then
       create_database
     elif [[ -n "${OPT_DELETE}" && -z "${OPT_CREATE}" ]]; then
       delete_database
+    else
+      display_usage
+    fi
+  elif [[ -n "${OPT_NAME}" && -n "${OPT_FIREWALL}" && -z "${OPT_DROPLET}" && -z "${OPT_DATABASE}" ]]; then
+    if [[ -n "${OPT_CREATE}" && -z "${OPT_DELETE}" ]]; then
+      create_firewall
+    elif [[ -n "${OPT_DELETE}" && -z "${OPT_CREATE}" ]]; then
+      delete_firewall
     else
       display_usage
     fi

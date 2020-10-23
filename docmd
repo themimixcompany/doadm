@@ -5,7 +5,7 @@ set -o pipefail
 
 readonly SELF=$(basename "${BASH_SOURCE[0]}")
 readonly OS=$(uname)
-readonly VERSION=1.0.2
+readonly VERSION=1.0.3
 
 readonly OPT_BASE_NAME=${SELF}
 readonly OPT_GLOBAL_CONFIG=/usr/local/etc/${OPT_BASE_NAME}rc
@@ -17,6 +17,8 @@ OPT_DEBUG=
 OPT_VERBOSE=
 
 OPT_CONFIG=
+
+OPT_INIT=
 
 OPT_NAME=
 OPT_DROPLET=
@@ -73,7 +75,7 @@ function debug () {
 function parse_arguments () {
   debug ${FUNCNAME[0]} "$@"
 
-  local opts=$(getopt -n "${SELF}" --options hdvn:OBFCDLi:r:s:E:R:S:V:N:a:Ap: --longoptions help,debug,verbose,droplet,database,firewall,create,delete,list,droplet-image:,droplet-region:,droplet-size:,database-engine:,database-region:,database-size:,database-version:,droplet-names:,addresses:,add-self-address,ports: -- "$@")
+  local opts=$(getopt -n "${SELF}" --options hdvn:OBFCDLi:r:s:E:R:S:V:N:a:Ap: --longoptions help,debug,verbose,init,droplet,database,firewall,create,delete,list,droplet-image:,droplet-region:,droplet-size:,database-engine:,database-region:,database-size:,database-version:,droplet-names:,addresses:,add-self-address,ports: -- "$@")
 
   if [[ $? != 0 ]]; then
     error "Failed to parse arguments. Exiting."
@@ -86,6 +88,7 @@ function parse_arguments () {
       (-h|--help) OPT_HELP=true; shift ;;
       (-d|--debug) OPT_DEBUG=true; shift ;;
       (-v|--verbose) OPT_VERBOSE=true; shift ;;
+      (--init) OPT_INIT=true; shift ;;
       (-n|--name) OPT_NAME=$2; shift 2 ;;
       (-O|--droplet) OPT_DROPLET=true; shift ;;
       (-B|--database) OPT_DATABASE=true; shift ;;
@@ -115,6 +118,9 @@ function process_arguments () {
 
   if [[ -n "${OPT_HELP}" || "${#}" -lt 1 ]]; then
     display_usage
+  elif [[ -n "${OPT_INIT}" ]]; then
+    init
+    exit 0
   elif [[ -n "${OPT_LIST}" ]]; then
     if [[ -n "${OPT_DROPLET}" && -z "${OPT_DATABASE}" && -z "${OPT_FIREWALL}" ]]; then
       list_droplets
@@ -148,6 +154,7 @@ OPTIONS:
   -d, --debug            Enable debugging mode
   -v, --verbose          Enable verbose output
   -n, --name             The name of the droplet, database, or firewall to manage
+      --init             Run the initialization commands
   -O, --droplet          Knob to specify droplet operations
   -B, --database         Knob to specify database operations
   -F, --firewall         Knob to specify database operations
@@ -193,6 +200,12 @@ function read_config () {
       return 0
     fi
   fi
+}
+
+function init () {
+  debug ${FUNCNAME[0]} "$@"
+
+  doctl auth init
 }
 
 function list_droplets () {

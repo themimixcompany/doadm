@@ -5,7 +5,7 @@ set -o pipefail
 
 readonly SELF=$(basename "${BASH_SOURCE[0]}")
 readonly OS=$(uname)
-readonly VERSION=1.0.0
+readonly VERSION=1.0.1
 
 readonly OPT_BASE_NAME=${SELF}
 readonly OPT_GLOBAL_CONFIG=/usr/local/etc/${OPT_BASE_NAME}rc
@@ -100,9 +100,19 @@ function process_arguments () {
 
   if [[ -n "${OPT_HELP}" || "${#}" -lt 1 ]]; then
     display_usage
+  elif [[ -n "${OPT_LIST}" ]]; then
+    if [[ -n "${OPT_DROPLET}" && -z "${OPT_DATABASE}" ]]; then
+      list_droplets
+      exit 0
+    elif [[ -n "${OPT_DATABASE}" && -z "${OPT_DROPLET}" ]]; then
+      list_databases
+      exit 0
+    else
+      display_usage
+    fi
   elif [[ -z "${OPT_NAME}" ]]; then
-    display usage
-  elif [[ -z "${OPT_DROPLET}" || -z "${OPT_DATABASE}" ]]; then
+    display_usage
+  elif [[ -z "${OPT_DROPLET}" && -z "${OPT_DATABASE}" ]]; then
     display_usage
   else
     return 0
@@ -121,7 +131,7 @@ OPTIONS:
   -v, --verbose          Enable verbose output
   -n, --name             The name of the droplet or database to manage
   -O, --droplet          Knob to specify droplet operations
-  -D, --database         Knob to specify database operations
+  -B, --database         Knob to specify database operations
   -C, --create           Create a droplet or database
   -D, --delete           Delete a droplet or database
   -L, --list             List all the droplets or databases

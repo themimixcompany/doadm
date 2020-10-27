@@ -8,6 +8,7 @@ docmd
 - [Overview](#overview)
 - [Dependencies](#dependencies)
 - [Usage](#usage)
+  + [Initialization](#init)
   + [Droplets](#droplets)
   + [Databases](#databases)
   + [Firewalls](#firewalls)
@@ -30,7 +31,7 @@ Scripts for managing DigitalOcean droplets, databases, and firewalls.
 <a name="usage">Usage</a>
 -------------------------
 
-### <a name="init">Initial usage</a>
+### <a name="init">Initialization</a>
 
 Before using this script, you must first authenticate with DigitalOcean. To do so, run:
 

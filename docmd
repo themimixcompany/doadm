@@ -166,12 +166,12 @@ OPTIONS:
   -v, --verbose          Enable verbose output
   -n, --name             The name of the droplet, database, or firewall to manage
   -I, --init             Run the initialization commands
-  -O, --droplet          Knob to specify droplet operations
+  -D, --droplet          Knob to specify droplet operations
   -B, --database         Knob to specify database operations
   -F, --firewall         Knob to specify database operations
   -K, --ssh-key          Specify the allowed SSH key for the droplet
   -C, --create           Create a droplet, database, or firewall
-  -D, --delete           Delete a droplet, databsae, or firewall
+  -Y, --destroy          Destroy a droplet, database, or firewall
   -L, --list             List all the droplets, databases, or firewalls
   -i, --droplet-image    Specify the droplet image (default: ${OPT_DROPLET_IMAGE})
   -r, --droplet-region   Specify the droplet region (default: ${OPT_DROPLET_REGION})
@@ -223,7 +223,7 @@ function init () {
 function list_droplets () {
   debug ${FUNCNAME[0]} "$@"
 
-  doctl compute droplet list
+  doctl compute droplet list | sed 1d | awk '{print $2 " " $3}' | column -t
 }
 
 function get_droplet_id () {
@@ -296,7 +296,7 @@ function delete_database () {
 function list_firewalls () {
   debug ${FUNCNAME[0]} "$@"
 
-  doctl compute firewall list | sed 1d | awk '{print $1 " " $2}' | column -t
+  doctl compute firewall list | sed 1d | awk '{print $2 " " $1}' | column -t
 }
 
 function get_firewall_id () {

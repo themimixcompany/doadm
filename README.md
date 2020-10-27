@@ -41,26 +41,26 @@ Before using this script, you must first authenticate with DigitalOcean. To do s
 
 To create the Ubuntu droplet `mimix-server-1`, run:
 
-    docmd -OCn mimix-server-1
+    docmd -DCN mimix-server-1
 
-To delete the Ubuntu droplet `mimix-server-1`, run:
+To destroy the Ubuntu droplet `mimix-server-1`, run:
 
-    docmd -ODn mimix-server-1
+    docmd -DYN mimix-server-1
 
 To display the list of droplets, run:
 
-    docmd -OL
+    docmd -DL
 
 
 ### <a name="databases">Databases</a>
 
 To create the PostgreSQL database `mimix-db-1`, run:
 
-    docmd -BCn mimix-db-1
+    docmd -BCN mimix-db-1
 
-To delete the PostgreSQL database `mimix-db-1`, run:
+To destroy the PostgreSQL database `mimix-db-1`, run:
 
-    docmd -BDn mimix-db-1
+    docmd -BYN mimix-db-1
 
 To display the list of databases, run:
 
@@ -73,11 +73,11 @@ To create or apply the firewall `mimix-only` to the droplets `mimix-server-1` an
 allowing access from your public IP address and `62.5.13.190` only, on the ports `22`, `80`, and
 `443`, run:
 
-    docmd -FCn mimix-only -N mimix-server-1,mimix-server-2 -A -a 62.5.13.190 -p 22,80,443
+    docmd -FCN mimix-only -n mimix-server-1,mimix-server-2 -A -a 62.5.13.190 -p 22,80,443
 
 To delete the firewall `mimix-only` and its association with any droplet, run:
 
-    docmd -FDn mimix-only
+    docmd -FYN mimix-only
 
 To display the list of firewalls, run:
 

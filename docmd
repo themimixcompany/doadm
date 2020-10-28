@@ -223,7 +223,7 @@ function init () {
 function list_droplets () {
   debug ${FUNCNAME[0]} "$@"
 
-  doctl compute droplet list | sed 1d | awk '{print $2 " " $3}' | column -t
+  doctl compute droplet list
 }
 
 function get_droplet_id () {
@@ -296,7 +296,7 @@ function delete_database () {
 function list_firewalls () {
   debug ${FUNCNAME[0]} "$@"
 
-  doctl compute firewall list | sed 1d | awk '{print $2 " " $1}' | column -t
+  doctl compute firewall list
 }
 
 function get_firewall_id () {

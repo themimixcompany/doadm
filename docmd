@@ -5,7 +5,7 @@ set -o pipefail
 
 readonly SELF=$(basename "${BASH_SOURCE[0]}")
 readonly OS=$(uname)
-readonly VERSION=1.0.8
+readonly VERSION=1.0.9
 
 readonly OPT_BASE_NAME=${SELF}
 readonly OPT_GLOBAL_CONFIG=/usr/local/etc/${OPT_BASE_NAME}rc
@@ -181,21 +181,21 @@ OPTIONS:
   -v, --verbose          Enable verbose output
   -n, --name             The name of the droplet, database, or firewall to manage
   -I, --init             Run the initialization commands
-  -D, --droplet          Knob to specify droplet operations
-  -B, --database         Knob to specify database operations
-  -F, --firewall         Knob to specify database operations
-  -K, --ssh-key          Specify the allowed SSH key for the droplet
+  -D, --droplet          Knob to set droplet operations
+  -B, --database         Knob to set database operations
+  -F, --firewall         Knob to set database operations
+  -K, --ssh-key          Set the allowed SSH key for the droplet
   -C, --create           Create a droplet, database, or firewall
   -Y, --destroy          Destroy a droplet, database, or firewall
   -L, --list             List all the droplets, databases, or firewalls
   -l, --list-short       List all the droplets, databases, or firewalls in short format
-  -i, --droplet-image    Specify the droplet image (default: ${OPT_DROPLET_IMAGE})
-  -r, --droplet-region   Specify the droplet region (default: ${OPT_DROPLET_REGION})
-  -s, --droplet-size     Specify the droplet size (default: ${OPT_DROPLET_SIZE})
-  -E, --database-engine  Specify the database engine (default: ${OPT_DATABASE_ENGINE})
-  -R, --database-region  Specify the database region (default: ${OPT_DATABASE_REGION})
-  -S, --database-size    Specify the database size (default: ${OPT_DATABASE_SIZE})
-  -V, --database-version Specify the database version (default: ${OPT_DATABASE_VERSION})
+  -i, --droplet-image    Set the droplet image (default: ${OPT_DROPLET_IMAGE})
+  -r, --droplet-region   Set the droplet region (default: ${OPT_DROPLET_REGION})
+  -s, --droplet-size     Set the droplet size (default: ${OPT_DROPLET_SIZE})
+  -E, --database-engine  Set the database engine (default: ${OPT_DATABASE_ENGINE})
+  -R, --database-region  Set the database region (default: ${OPT_DATABASE_REGION})
+  -S, --database-size    Set the database size (default: ${OPT_DATABASE_SIZE})
+  -V, --database-version Set the database version (default: ${OPT_DATABASE_VERSION})
   -N, --droplet-names    A comma-separated list of droplets names to apply the firewall rules to
   -a, --addresses        A comma-separated list of IP addresses to allow
   -A, --add-self-address Add own public IP address to list of IP addresses to allow
@@ -277,7 +277,11 @@ function create_droplet () {
 function delete_droplet () {
   debug ${FUNCNAME[0]} "$@"
 
-  doctl compute droplet delete "$(get_droplet_id ${OPT_NAME})"
+  local id="$(get_droplet_id ${OPT_NAME})"
+
+  if [[ -n "${id}" ]]; then
+    doctl compute droplet delete "${id}"
+  fi
 }
 
 function list_databases () {
@@ -306,7 +310,11 @@ function create_database () {
 function delete_database () {
   debug ${FUNCNAME[0]} "$@"
 
-  doctl databases delete "$(get_database_id ${OPT_NAME})"
+  local id="$(get_database_id ${OPT_NAME})"
+
+  if [[ -n "${id}" ]]; then
+    doctl databases delete "${id}"
+  fi
 }
 
 function list_firewalls () {
@@ -388,7 +396,11 @@ function create_firewall () {
 function delete_firewall () {
   debug ${FUNCNAME[0]} "$@"
 
-  doctl compute firewall delete "$(get_firewall_id ${OPT_NAME})"
+  local id="$(get_firewall_id ${OPT_NAME})"
+
+  if [[ -n "${id}" ]]; then
+    doctl compute firewall delete
+  fi
 }
 
 function run () {

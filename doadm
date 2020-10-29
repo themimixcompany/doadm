@@ -3,9 +3,10 @@
 set -eu
 set -o pipefail
 
-readonly SELF=$(basename "${BASH_SOURCE[0]}")
+readonly SELF="$(basename ${BASH_SOURCE[0]})"
+readonly SELF_DIR="$(cd $(dirname ${BASH_SOURCE[0]}) > /dev/null 2>&1 && pwd)"
 readonly OS=$(uname)
-readonly VERSION=1.0.9
+readonly VERSION=1.0.10
 
 readonly OPT_BASE_NAME=${SELF}
 readonly OPT_GLOBAL_CONFIG=/usr/local/etc/${OPT_BASE_NAME}rc
@@ -149,13 +150,13 @@ function process_arguments () {
     fi
   elif [[ -n "${OPT_LIST_SHORT}" ]]; then
     if [[ -n "${OPT_DROPLET}" && -z "${OPT_DATABASE}" && -z "${OPT_FIREWALL}" ]]; then
-      list_droplets | sed 1d | awk '{print $1 " " $2 " " $3}' | column -t
+      list_droplets_short
       exit 0
     elif [[ -n "${OPT_DATABASE}" && -z "${OPT_DROPLET}" && -z "${OPT_FIREWALL}" ]]; then
-      list_databases | sed 1d | awk '{print $1 " " $2}' | column -t
+      list_databases_short
       exit 0
     elif [[ -n "${OPT_FIREWALL}" && -z "${OPT_DROPLET}" && -z "${OPT_DATABASE}" ]]; then
-      list_firewalls | sed 1d | awk '{print $1 " " $2}' | column -t
+      list_firewalls_short
       exit 0
     else
       display_usage
@@ -242,6 +243,12 @@ function list_droplets () {
   doctl compute droplet list
 }
 
+function list_droplets_short () {
+  debug ${FUNCNAME[0]} "$@"
+
+  list_droplets | sed 1d | awk '{print $1 " " $2 " " $3}' | column -t
+}
+
 function get_droplet_id () {
   debug ${FUNCNAME[0]} "$@"
 
@@ -290,6 +297,12 @@ function list_databases () {
   doctl databases list
 }
 
+function list_databases_short () {
+  debug ${FUNCNAME[0]} "$@"
+
+  list_databases_short | sed 1d | awk '{print $1 " " $2}' | column -t
+}
+
 function get_database_id () {
   debug ${FUNCNAME[0]} "$@"
 
@@ -323,10 +336,16 @@ function list_firewalls () {
   doctl compute firewall list
 }
 
+function list_firewalls_short () {
+  debug ${FUNCNAME[0]} "$@"
+
+  list_firewalls | sed 1d | awk '{print $1 " " $2}' | column -t
+}
+
 function get_firewall_id () {
   debug ${FUNCNAME[0]} "$@"
 
-  list_firewalls | awk "/[0-9]+\s+${1}/" | awk '{print $1}'
+  list_firewalls_short | grep -i "${1}" | awk '{print $1}'
 }
 
 function extra_addresses () {
@@ -399,7 +418,7 @@ function delete_firewall () {
   local id="$(get_firewall_id ${OPT_NAME})"
 
   if [[ -n "${id}" ]]; then
-    doctl compute firewall delete
+    doctl compute firewall delete "${id}"
   fi
 }
 

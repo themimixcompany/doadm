@@ -197,7 +197,7 @@ OPTIONS:
   -R, --database-region  Set the database region (default: ${OPT_DATABASE_REGION})
   -S, --database-size    Set the database size (default: ${OPT_DATABASE_SIZE})
   -V, --database-version Set the database version (default: ${OPT_DATABASE_VERSION})
-  -N, --droplet-names    A comma-separated list of droplets names to apply the firewall rules to
+  -n, --droplet-names    A comma-separated list of droplets names to apply the firewall rules to
   -a, --addresses        A comma-separated list of IP addresses to allow
   -A, --add-self-address Add own public IP address to list of IP addresses to allow
   -p, --ports            A comma-separated list of allowed ports

@@ -46,7 +46,7 @@ To create the Ubuntu droplet `mimix-server-1`, run:
 
 To destroy the Ubuntu droplet `mimix-server-1`, run:
 
-    doadm -DYN mimix-server-1
+    doadm -DXN mimix-server-1
 
 To display the list of droplets, run:
 
@@ -61,7 +61,7 @@ To create the PostgreSQL database `mimix-db-1`, run:
 
 To destroy the PostgreSQL database `mimix-db-1`, run:
 
-    doadm -BYN mimix-db-1
+    doadm -BXN mimix-db-1
 
 To display the list of databases, run:
 
@@ -78,7 +78,7 @@ allowing access from your public IP address and `62.5.13.190` only, on the ports
 
 To delete the firewall `mimix-only` and its association with any droplet, run:
 
-    doadm -FYN mimix-only
+    doadm -FXN mimix-only
 
 To display the list of firewalls, run:
 

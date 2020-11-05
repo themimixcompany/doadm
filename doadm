@@ -6,7 +6,7 @@ set -o pipefail
 readonly SELF="$(basename ${BASH_SOURCE[0]})"
 readonly SELF_DIR="$(cd $(dirname ${BASH_SOURCE[0]}) > /dev/null 2>&1 && pwd)"
 readonly OS=$(uname)
-readonly VERSION=1.0.10
+readonly VERSION=1.0.11
 
 readonly OPT_BASE_NAME=${SELF}
 readonly OPT_GLOBAL_CONFIG=/usr/local/etc/${OPT_BASE_NAME}rc
@@ -27,7 +27,7 @@ OPT_DATABASE=
 OPT_FIREWALL=
 
 OPT_CREATE=
-OPT_DESTROY=
+OPT_EXPUNGE=
 OPT_LIST=
 OPT_LIST_SHORT=
 
@@ -79,7 +79,7 @@ function debug () {
 function parse_arguments () {
   debug ${FUNCNAME[0]} "$@"
 
-  local opts=$(getopt -n "${SELF}" --options hvIN:DBFK:CYLli:r:s:E:R:S:V:n:a:Ap: --longoptions help,debug,verbose,init,droplet,database,firewall,ssh-key:,create,destroy,list,list-short,droplet-image:,droplet-region:,droplet-size:,database-engine:,database-region:,database-size:,database-version:,droplet-names:,addresses:,add-self-address,ports: -- "$@")
+  local opts=$(getopt -n "${SELF}" --options hvIN:DBFK:CXLli:r:s:E:R:S:V:n:a:Ap: --longoptions help,debug,verbose,init,droplet,database,firewall,ssh-key:,create,expunge,destroy,list,list-short,droplet-image:,droplet-region:,droplet-size:,database-engine:,database-region:,database-size:,database-version:,droplet-names:,addresses:,add-self-address,ports: -- "$@")
 
   if [[ $? != 0 ]]; then
     error "Failed to parse arguments. Exiting."
@@ -103,7 +103,7 @@ function parse_arguments () {
       (-K|--ssh-key) OPT_SSH_KEY=$2; shift 2 ;;
 
       (-C|--create) OPT_CREATE=true; shift ;;
-      (-Y|--destroy) OPT_DESTROY=true; shift ;;
+      (-X|--expunge|--destroy) OPT_EXPUNGE=true; shift ;;
       (-L|--list) OPT_LIST=true; shift ;;
       (-l|--list-short) OPT_LIST_SHORT=true; shift ;;
 
@@ -187,7 +187,7 @@ OPTIONS:
   -F, --firewall         Knob to set database operations
   -K, --ssh-key          Set the allowed SSH key for the droplet
   -C, --create           Create a droplet, database, or firewall
-  -Y, --destroy          Destroy a droplet, database, or firewall
+  -X, --expunge          Expunge a droplet, database, or firewall
   -L, --list             List all the droplets, databases, or firewalls
   -l, --list-short       List all the droplets, databases, or firewalls in short format
   -i, --droplet-image    Set the droplet image (default: ${OPT_DROPLET_IMAGE})
@@ -426,25 +426,25 @@ function run () {
   debug ${FUNCNAME[0]} "$@"
 
   if [[ -n "${OPT_NAME}" && -n "${OPT_DROPLET}" && -z "${OPT_DATABASE}" && -z "${OPT_FIREWALL}" ]]; then
-    if [[ -n "${OPT_CREATE}" && -z "${OPT_DESTROY}" ]]; then
+    if [[ -n "${OPT_CREATE}" && -z "${OPT_EXPUNGE}" ]]; then
       create_droplet
-    elif [[ -n "${OPT_DESTROY}" && -z "${OPT_CREATE}" ]]; then
+    elif [[ -n "${OPT_EXPUNGE}" && -z "${OPT_CREATE}" ]]; then
       delete_droplet
     else
       display_usage
     fi
   elif [[ -n "${OPT_NAME}" && -n "${OPT_DATABASE}" && -z "${OPT_DROPLET}" && -z "${OPT_FIREWALL}" ]]; then
-    if [[ -n "${OPT_CREATE}" && -z "${OPT_DESTROY}" ]]; then
+    if [[ -n "${OPT_CREATE}" && -z "${OPT_EXPUNGE}" ]]; then
       create_database
-    elif [[ -n "${OPT_DESTROY}" && -z "${OPT_CREATE}" ]]; then
+    elif [[ -n "${OPT_EXPUNGE}" && -z "${OPT_CREATE}" ]]; then
       delete_database
     else
       display_usage
     fi
   elif [[ -n "${OPT_NAME}" && -n "${OPT_FIREWALL}" && -z "${OPT_DROPLET}" && -z "${OPT_DATABASE}" ]]; then
-    if [[ -n "${OPT_CREATE}" && -z "${OPT_DESTROY}" ]]; then
+    if [[ -n "${OPT_CREATE}" && -z "${OPT_EXPUNGE}" ]]; then
       create_firewall
-    elif [[ -n "${OPT_DESTROY}" && -z "${OPT_CREATE}" ]]; then
+    elif [[ -n "${OPT_EXPUNGE}" && -z "${OPT_CREATE}" ]]; then
       delete_firewall
     else
       display_usage

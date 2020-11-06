@@ -40,13 +40,13 @@ Before using this script, you must first authenticate with DigitalOcean. To do s
 
 ### <a name="droplets">Droplets</a>
 
-To create the Ubuntu droplet `mimix-server-1`, run:
+To create the Ubuntu droplet `droplet-1`, run:
 
-    doadm -DCN mimix-server-1
+    doadm -DCN droplet-1
 
-To destroy the Ubuntu droplet `mimix-server-1`, run:
+To destroy the Ubuntu droplet `droplet-1`, run:
 
-    doadm -DXN mimix-server-1
+    doadm -DXN droplet-1
 
 To display the list of droplets, run:
 
@@ -70,15 +70,19 @@ To display the list of databases, run:
 
 ### <a name="firewalls">Firewalls</a>
 
-To create or apply the firewall `mimix-only` to the droplets `mimix-server-1` and `mimix-server-2`,
+To create or apply the firewall `mimix` to the droplets `droplet-1` and `droplet-2`,
 allowing access from your public IP address and `62.5.13.190` only, on the ports `22`, `80`, and
 `443`, run:
 
-    doadm -FCN mimix-only -n mimix-server-1,mimix-server-2 -A -a 62.5.13.190 -p 22,80,443
+    doadm -FCN mimix -a droplet-1,droplet-2 -SA 62.5.13.190 -P 22,80,443
 
-To delete the firewall `mimix-only` and its association with any droplet, run:
+To remove `droplet-2` from the firewall `mimix`, run:
 
-    doadm -FXN mimix-only
+    doadm -FCN mimix -x droplet-2
+
+To delete the firewall `mimix` and its association with any droplet, run:
+
+    doadm -FXN mimix
 
 To display the list of firewalls, run:
 

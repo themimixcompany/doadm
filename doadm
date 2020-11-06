@@ -6,7 +6,7 @@ set -o pipefail
 readonly SELF="$(basename ${BASH_SOURCE[0]})"
 readonly SELF_DIR="$(cd $(dirname ${BASH_SOURCE[0]}) > /dev/null 2>&1 && pwd)"
 readonly OS=$(uname)
-readonly VERSION=1.1.0
+readonly VERSION=1.2.0
 
 readonly OPT_BASE_NAME=${SELF}
 readonly OPT_GLOBAL_CONFIG=/usr/local/etc/${OPT_BASE_NAME}rc
@@ -81,7 +81,7 @@ function debug () {
 function parse_arguments () {
   debug ${FUNCNAME[0]} "$@"
 
-  local opts=$(getopt -n "${SELF}" --options hvIN:DBFK:CXLli:r:z:E:R:Z:V:a:x:A:SP: --longoptions help,debug,verbose,init,droplet,database,firewall,ssh-key:,create,expunge,list,list-short,droplet-image:,droplet-region:,droplet-size:,database-engine:,database-region:,database-size:,database-version:,add-droplets:,expunge-droplets:,addresses:,add-self-address,ports: -- "$@")
+  local opts=$(getopt -n "${SELF}" --options hvIN:DBFK:CXLli:r:z:E:R:Z:V:a:x:SA:P: --longoptions help,debug,verbose,init,droplet,database,firewall,ssh-key:,create,expunge,list,list-short,droplet-image:,droplet-region:,droplet-size:,database-engine:,database-region:,database-size:,database-version:,add-droplets:,expunge-droplets:,add-self-address,addresses:,ports: -- "$@")
 
   if [[ $? != 0 ]]; then
     error "Failed to parse arguments. Exiting."
@@ -121,8 +121,8 @@ function parse_arguments () {
       (-a|--add-droplets) OPT_ADD_DROPLETS=$2; shift 2 ;;
       (-x|--expunge-droplets) OPT_EXPUNGE_DROPLETS=$2; shift 2 ;;
 
-      (-A|--addresses) OPT_ADDRESSES=$2; shift 2 ;;
       (-S|--add-self-address) OPT_ADD_SELF_ADDRESS=true; shift ;;
+      (-A|--addresses) OPT_ADDRESSES=$2; shift 2 ;;
       (-P|--ports) OPT_PORTS=$2; shift 2 ;;
 
       (--) shift; break ;;
@@ -203,8 +203,8 @@ OPTIONS:
   -V, --database-version  Set the database version (default: ${OPT_DATABASE_VERSION})
   -a, --add-droplets      A comma-separated list of droplets names to add to the firewall
   -x, --expunge-droplets  A comma-separated list of droplets names to expunge to the firewall
-  -A, --addresses         A comma-separated list of IP addresses to allow
   -S, --add-self-address  Add own public IP address to list of IP addresses to allow
+  -A, --addresses         A comma-separated list of IP addresses to allow
   -P, --ports             A comma-separated list of allowed ports
 EOF
   exit 0
@@ -416,6 +416,12 @@ function create_firewall () {
       droplet_ids="$(get_droplet_ids ${OPT_EXPUNGE_DROPLETS} | sed 's/,$//')"
       doctl compute firewall remove-droplets "${firewall_id}" \
             --droplet-ids "${droplet_ids}"
+    elif [[ -z "${OPT_ADD_DROPLETS}" && -z "${OPT_EXPUNGE_DROPLETS}" ]]; then
+      inbound_rules="$(compose_inbound_rules | sed 's/\ $//')"
+      doctl compute firewall update "${firewall_id}" \
+            --name "${OPT_NAME}" \
+            --inbound-rules "${inbound_rules}" \
+            --outbound-rules "${OPT_OUTBOUND_RULES}"
     else
       display_usage
     fi

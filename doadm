@@ -6,7 +6,7 @@ set -o pipefail
 readonly SELF="$(basename ${BASH_SOURCE[0]})"
 readonly SELF_DIR="$(cd $(dirname ${BASH_SOURCE[0]}) > /dev/null 2>&1 && pwd)"
 readonly OS=$(uname)
-readonly VERSION=1.2.4
+readonly VERSION=1.2.5
 
 readonly OPT_BASE_NAME=${SELF}
 readonly OPT_GLOBAL_CONFIG=/usr/local/etc/${OPT_BASE_NAME}rc
@@ -314,7 +314,7 @@ function list_databases () {
 function list_databases_short () {
   debug ${FUNCNAME[0]} "$@"
 
-  list_databases_short | sed 1d | awk '{print $1 " " $2}' | column -t
+  list_databases | sed 1d | awk '{print $1 " " $2}' | column -t
 }
 
 function get_database_id () {

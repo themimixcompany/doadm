@@ -6,7 +6,7 @@ set -o pipefail
 readonly SELF="$(basename ${BASH_SOURCE[0]})"
 readonly SELF_DIR="$(cd $(dirname ${BASH_SOURCE[0]}) > /dev/null 2>&1 && pwd)"
 readonly OS=$(uname)
-readonly VERSION=1.2.2
+readonly VERSION=1.2.3
 
 readonly OPT_BASE_NAME=${SELF}
 readonly OPT_GLOBAL_CONFIG=/usr/local/etc/${OPT_BASE_NAME}rc
@@ -83,7 +83,7 @@ function debug () {
 function parse_arguments () {
   debug ${FUNCNAME[0]} "$@"
 
-  local opts=$(getopt -n "${SELF}" --options hvIN:DBFK:CXLli:r:z:E:R:Z:V:a:x:SA:P:f --longoptions help,debug,verbose,init,droplet,database,firewall,ssh-key:,create,expunge,list,list-short,droplet-image:,droplet-region:,droplet-size:,database-engine:,database-region:,database-size:,database-version:,add-droplets:,expunge-droplets:,add-self-address,addresses:,ports:,force -- "$@")
+  local opts=$(getopt -n "${SELF}" --options IN:DBFK:CXLli:r:z:E:R:Z:V:a:x:SA:P:f --longoptions help,debug,verbose,init,droplet,database,firewall,ssh-key:,create,expunge,list,list-short,droplet-image:,droplet-region:,droplet-size:,database-engine:,database-region:,database-size:,database-version:,add-droplets:,expunge-droplets:,add-self-address,addresses:,ports:,force -- "$@")
 
   if [[ $? != 0 ]]; then
     error "Failed to parse arguments. Exiting."
@@ -93,9 +93,9 @@ function parse_arguments () {
 
   while true; do
     case "$1" in
-      (-h|--help) OPT_HELP=true; shift ;;
+      (--help) OPT_HELP=true; shift ;;
       (--debug) OPT_DEBUG=true; shift ;;
-      (-v|--verbose) OPT_VERBOSE=true; shift ;;
+      (--verbose) OPT_VERBOSE=true; shift ;;
 
       (-I|--init) OPT_INIT=true; shift ;;
       (-N|--name) OPT_NAME=$2; shift 2 ;;

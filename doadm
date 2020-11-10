@@ -6,7 +6,7 @@ set -o pipefail
 readonly SELF="$(basename ${BASH_SOURCE[0]})"
 readonly SELF_DIR="$(cd $(dirname ${BASH_SOURCE[0]}) > /dev/null 2>&1 && pwd)"
 readonly OS=$(uname)
-readonly VERSION=1.2.3
+readonly VERSION=1.2.4
 
 readonly OPT_BASE_NAME=${SELF}
 readonly OPT_GLOBAL_CONFIG=/usr/local/etc/${OPT_BASE_NAME}rc
@@ -185,10 +185,10 @@ function display_usage () {
 ${SELF} v${VERSION} [OPTIONS]...
 
 OPTIONS:
-  -h, --help              Show this help
-  -d, --debug             Enable debugging mode
-  -v, --verbose           Enable verbose output
-  -n, --name              The name of the droplet, database, or firewall to manage
+      --help              Show this help
+      --debug             Enable debugging mode
+      --verbose           Enable verbose output
+  -N, --name              The name of the droplet, database, or firewall to manage
   -I, --init              Run the initialization commands
   -D, --droplet           Knob to set droplet operations
   -B, --database          Knob to set database operations

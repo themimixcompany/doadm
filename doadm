@@ -6,7 +6,7 @@ set -o pipefail
 readonly SELF="$(basename ${BASH_SOURCE[0]})"
 readonly SELF_DIR="$(cd $(dirname ${BASH_SOURCE[0]}) > /dev/null 2>&1 && pwd)"
 readonly OS=$(uname)
-readonly VERSION=1.2.0
+readonly VERSION=1.2.2
 
 readonly OPT_BASE_NAME=${SELF}
 readonly OPT_GLOBAL_CONFIG=/usr/local/etc/${OPT_BASE_NAME}rc
@@ -50,6 +50,8 @@ OPT_ADDRESSES=
 OPT_ADD_SELF_ADDRESS=
 OPT_PORTS=
 
+OPT_FORCE=
+
 OPT_OUTBOUND_RULES="protocol:tcp,ports:all,address:0.0.0.0/0,address:::/0 protocol:udp,ports:all,address:0.0.0.0/0,address:::/0"
 
 function error () {
@@ -81,7 +83,7 @@ function debug () {
 function parse_arguments () {
   debug ${FUNCNAME[0]} "$@"
 
-  local opts=$(getopt -n "${SELF}" --options hvIN:DBFK:CXLli:r:z:E:R:Z:V:a:x:SA:P: --longoptions help,debug,verbose,init,droplet,database,firewall,ssh-key:,create,expunge,list,list-short,droplet-image:,droplet-region:,droplet-size:,database-engine:,database-region:,database-size:,database-version:,add-droplets:,expunge-droplets:,add-self-address,addresses:,ports: -- "$@")
+  local opts=$(getopt -n "${SELF}" --options hvIN:DBFK:CXLli:r:z:E:R:Z:V:a:x:SA:P:f --longoptions help,debug,verbose,init,droplet,database,firewall,ssh-key:,create,expunge,list,list-short,droplet-image:,droplet-region:,droplet-size:,database-engine:,database-region:,database-size:,database-version:,add-droplets:,expunge-droplets:,add-self-address,addresses:,ports:,force -- "$@")
 
   if [[ $? != 0 ]]; then
     error "Failed to parse arguments. Exiting."
@@ -124,6 +126,8 @@ function parse_arguments () {
       (-S|--add-self-address) OPT_ADD_SELF_ADDRESS=true; shift ;;
       (-A|--addresses) OPT_ADDRESSES=$2; shift 2 ;;
       (-P|--ports) OPT_PORTS=$2; shift 2 ;;
+
+      (-f|--force) OPT_FORCE=true; shift ;;
 
       (--) shift; break ;;
       (*) break ;;
@@ -206,6 +210,7 @@ OPTIONS:
   -S, --add-self-address  Add own public IP address to list of IP addresses to allow
   -A, --addresses         A comma-separated list of IP addresses to allow
   -P, --ports             A comma-separated list of allowed ports
+  -f, --force             Do not prompt user for confirmation
 EOF
   exit 0
 }
@@ -290,11 +295,14 @@ function create_droplet () {
 function expunge_droplet () {
   debug ${FUNCNAME[0]} "$@"
 
-  local id="$(get_droplet_id ${OPT_NAME})"
-
-  if [[ -n "${id}" ]]; then
-    doctl compute droplet delete "${id}"
-  fi
+  for id in $(get_droplet_id ${OPT_NAME}); do
+    echo "${id} ${OPT_NAME}"
+    if [[ -n "${OPT_FORCE}" ]]; then
+      doctl compute droplet delete --force "${id}" || true
+    else
+      doctl compute droplet delete "${id}" || true
+    fi
+  done
 }
 
 function list_databases () {
@@ -332,7 +340,12 @@ function expunge_database () {
   local id="$(get_database_id ${OPT_NAME})"
 
   if [[ -n "${id}" ]]; then
-    doctl databases delete "${id}"
+    echo "${id} ${OPT_NAME}"
+    if [[ -n "${OPT_FORCE}" ]]; then
+      doctl databases delete --force "${id}" || true
+    else
+      doctl databases delete "${id}" || true
+    fi
   fi
 }
 
@@ -442,7 +455,12 @@ function expunge_firewall () {
   local id="$(get_firewall_id ${OPT_NAME})"
 
   if [[ -n "${id}" ]]; then
-    doctl compute firewall delete "${id}"
+    echo "${id} ${OPT_NAME}"
+    if [[ -n "${OPT_FORCE}" ]]; then
+      doctl compute firewall delete --force "${id}" || true
+    else
+      doctl compute firewall delete "${id}" || true
+    fi
   fi
 }
 

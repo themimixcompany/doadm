@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 
-set -eu
-set -o pipefail
+set -euo pipefail
 
 readonly SELF="$(basename ${BASH_SOURCE[0]})"
 readonly SELF_DIR="$(cd $(dirname ${BASH_SOURCE[0]}) > /dev/null 2>&1 && pwd)"
 readonly OS="$(uname)"
-readonly VERSION="1.2.6"
+readonly VERSION="1.2.7"
 
 OPT_HELP=
 OPT_DEBUG=

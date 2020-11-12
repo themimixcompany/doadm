@@ -6,16 +6,17 @@ set -o pipefail
 readonly SELF="$(basename ${BASH_SOURCE[0]})"
 readonly SELF_DIR="$(cd $(dirname ${BASH_SOURCE[0]}) > /dev/null 2>&1 && pwd)"
 readonly OS="$(uname)"
-readonly VERSION="1.2.5"
-
-readonly VAL_GLOBAL_CONFIG=/usr/local/etc/${SELF}rc
-readonly VAL_USER_XDG_CONFIG=$HOME/.config/${SELF}/${SELF}rc
-readonly VAL_USER_HOME_CONFIG=$HOME/.${SELF}rc
+readonly VERSION="1.2.6"
 
 OPT_HELP=
 OPT_DEBUG=
 OPT_VERBOSE=
 OPT_VERSION=
+
+readonly VAL_GLOBAL_CONFIG=/usr/local/etc/${SELF}rc
+readonly VAL_USER_XDG_CONFIG=$HOME/.config/${SELF}/${SELF}rc
+readonly VAL_USER_HOME_CONFIG=$HOME/.${SELF}rc
+readonly VAL_OUTBOUND_RULES="protocol:tcp,ports:all,address:0.0.0.0/0,address:::/0 protocol:udp,ports:all,address:0.0.0.0/0,address:::/0"
 
 OPT_CONFIG=
 OPT_NAME=
@@ -42,8 +43,6 @@ OPT_ADD_SELF_ADDRESS=
 OPT_ADDRESSES=
 OPT_PORTS=
 OPT_FORCE=
-
-OPT_OUTBOUND_RULES="protocol:tcp,ports:all,address:0.0.0.0/0,address:::/0 protocol:udp,ports:all,address:0.0.0.0/0,address:::/0"
 
 function error () {
   if [[ "${OS}" == "Darwin" ]]; then
@@ -74,10 +73,10 @@ function debug () {
 function parse_arguments () {
   debug ${FUNCNAME[0]} "$@"
 
-  local opts=$(getopt -n "${SELF}" --options IN:DBFK:CXLli:r:z:E:R:Z:V:a:x:SA:P:f --longoptions help,debug,verbose,version,init,droplet,database,firewall,ssh-key:,create,expunge,list,list-short,droplet-image:,droplet-region:,droplet-size:,database-engine:,database-region:,database-size:,database-version:,add-droplets:,expunge-droplets:,add-self-address,addresses:,ports:,force -- "$@")
+  local opts=$(getopt -n "${SELF}" --options ICXDBFN:K:Lli:r:z:E:R:Z:V:a:x:SA:P: --longoptions help,debug,verbose,version,init,droplet,database,firewall,ssh-key:,create,expunge,list,list-short,droplet-image:,droplet-region:,droplet-size:,database-engine:,database-region:,database-size:,database-version:,add-droplets:,expunge-droplets:,add-self-address,addresses:,ports:,force -- "$@")
 
   if [[ $? != 0 ]]; then
-    error "Failed to parse arguments. Exiting."
+    error "Failed to parse arguments. Aborting."
   fi
 
   eval set -- "${opts}"
@@ -88,14 +87,14 @@ function parse_arguments () {
       (--debug) OPT_DEBUG=true; shift ;;
       (--verbose) OPT_VERBOSE=true; shift ;;
       (--version) OPT_VERSION=true; shift ;;
-      (-N|--name) OPT_NAME=$2; shift 2 ;;
       (-I|--init) OPT_INIT=true; shift ;;
+      (-C|--create) OPT_CREATE=true; shift ;;
+      (-X|--expunge) OPT_EXPUNGE=true; shift ;;
       (-D|--droplet) OPT_DROPLET=true; shift ;;
       (-B|--database) OPT_DATABASE=true; shift ;;
       (-F|--firewall) OPT_FIREWALL=true; shift ;;
+      (-N|--name) OPT_NAME=$2; shift 2 ;;
       (-K|--ssh-key) OPT_SSH_KEY=$2; shift 2 ;;
-      (-C|--create) OPT_CREATE=true; shift ;;
-      (-X|--expunge) OPT_EXPUNGE=true; shift ;;
       (-L|--list) OPT_LIST=true; shift ;;
       (-l|--list-short) OPT_LIST_SHORT=true; shift ;;
       (-i|--droplet-image) OPT_DROPLET_IMAGE=$2; shift 2 ;;
@@ -110,7 +109,7 @@ function parse_arguments () {
       (-S|--add-self-address) OPT_ADD_SELF_ADDRESS=true; shift ;;
       (-A|--addresses) OPT_ADDRESSES=$2; shift 2 ;;
       (-P|--ports) OPT_PORTS=$2; shift 2 ;;
-      (-f|--force) OPT_FORCE=true; shift ;;
+      (--force) OPT_FORCE=true; shift ;;
       (--) shift; break ;;
       (*) break ;;
     esac
@@ -173,14 +172,14 @@ OPTIONS:
       --debug             Enable debugging mode
       --verbose           Enable verbose output
       --version           Display program version info
-  -N, --name              The name of the droplet, database, or firewall to manage
   -I, --init              Run the initialization commands
+  -C, --create            Create a droplet, database, or firewall
+  -X, --expunge           Expunge a droplet, database, or firewall
   -D, --droplet           Knob to set droplet operations
   -B, --database          Knob to set database operations
   -F, --firewall          Knob to set database operations
+  -N, --name              The name of the droplet, database, or firewall to manage
   -K, --ssh-key           Set the allowed SSH key for the droplet
-  -C, --create            Create a droplet, database, or firewall
-  -X, --expunge           Expunge a droplet, database, or firewall
   -L, --list              List all the droplets, databases, or firewalls
   -l, --list-short        List all the droplets, databases, or firewalls in short format
   -i, --droplet-image     Set the droplet image (default: ${OPT_DROPLET_IMAGE})
@@ -195,7 +194,7 @@ OPTIONS:
   -S, --add-self-address  Add own public IP address to list of IP addresses to allow
   -A, --addresses         A comma-separated list of IP addresses to allow
   -P, --ports             A comma-separated list of allowed ports
-  -f, --force             Do not prompt user for operation confirmations
+      --force             Do not prompt user for operation confirmations
 EOF
   exit 0
 }
@@ -418,7 +417,7 @@ function create_firewall () {
             --name "${OPT_NAME}" \
             --droplet-ids "${droplet_ids}" \
             --inbound-rules "${inbound_rules}" \
-            --outbound-rules "${OPT_OUTBOUND_RULES}"
+            --outbound-rules "${VAL_OUTBOUND_RULES}"
     elif [[ -n "${OPT_EXPUNGE_DROPLETS}" && -z "${OPT_ADD_DROPLETS}" ]]; then
       droplet_ids="$(get_droplet_ids ${OPT_EXPUNGE_DROPLETS} | sed 's/,$//')"
       doctl compute firewall remove-droplets "${firewall_id}" \
@@ -428,7 +427,7 @@ function create_firewall () {
       doctl compute firewall update "${firewall_id}" \
             --name "${OPT_NAME}" \
             --inbound-rules "${inbound_rules}" \
-            --outbound-rules "${OPT_OUTBOUND_RULES}"
+            --outbound-rules "${VAL_OUTBOUND_RULES}"
     else
       display_usage
     fi
@@ -439,7 +438,7 @@ function create_firewall () {
           --name "${OPT_NAME}" \
           --droplet-ids "${droplet_ids}" \
           --inbound-rules "${inbound_rules}" \
-          --outbound-rules "${OPT_OUTBOUND_RULES}"
+          --outbound-rules "${VAL_OUTBOUND_RULES}"
   fi
 }
 

@@ -50,7 +50,7 @@ To destroy the Ubuntu droplet `droplet-1`, run:
 
 To display the list of droplets, run:
 
-    doadm -DL
+    doadm -Dl
 
 
 ### <a name="databases">Databases</a>
@@ -65,7 +65,7 @@ To destroy the PostgreSQL database `mimix-db-1`, run:
 
 To display the list of databases, run:
 
-    doadm -BL
+    doadm -Bl
 
 
 ### <a name="firewalls">Firewalls</a>
@@ -86,7 +86,7 @@ To delete the firewall `mimix` and its association with any droplet, run:
 
 To display the list of firewalls, run:
 
-    doadm -FL
+    doadm -Fl
 
 
 ### <a name="miscellany">Miscellany</a>

@@ -5,60 +5,51 @@ set -o pipefail
 
 readonly SELF="$(basename ${BASH_SOURCE[0]})"
 readonly SELF_DIR="$(cd $(dirname ${BASH_SOURCE[0]}) > /dev/null 2>&1 && pwd)"
-readonly OS=$(uname)
-readonly VERSION=1.2.5
+readonly OS="$(uname)"
+readonly VERSION="1.2.5"
 
-readonly OPT_BASE_NAME=${SELF}
-readonly OPT_GLOBAL_CONFIG=/usr/local/etc/${OPT_BASE_NAME}rc
-readonly OPT_USER_XDG_CONFIG=$HOME/.config/${OPT_BASE_NAME}/${OPT_BASE_NAME}rc
-readonly OPT_USER_HOME_CONFIG=$HOME/.${OPT_BASE_NAME}rc
+readonly VAL_GLOBAL_CONFIG=/usr/local/etc/${SELF}rc
+readonly VAL_USER_XDG_CONFIG=$HOME/.config/${SELF}/${SELF}rc
+readonly VAL_USER_HOME_CONFIG=$HOME/.${SELF}rc
 
 OPT_HELP=
 OPT_DEBUG=
 OPT_VERBOSE=
+OPT_VERSION=
 
 OPT_CONFIG=
-
-OPT_INIT=
-
 OPT_NAME=
+OPT_INIT=
 OPT_DROPLET=
 OPT_DATABASE=
 OPT_FIREWALL=
-
+OPT_SSH_KEY=
 OPT_CREATE=
 OPT_EXPUNGE=
 OPT_LIST=
 OPT_LIST_SHORT=
-
 OPT_DROPLET_IMAGE=ubuntu-20-04-x64 # doctl compute image list-distribution
 OPT_DROPLET_REGION=nyc1            # doctl compute region list
 OPT_DROPLET_SIZE=s-1vcpu-1gb       # doctl compute size list
-
-OPT_SSH_KEY=
-
 OPT_DATABASE_ENGINE=pg
 OPT_DATABASE_REGION=nyc1
 OPT_DATABASE_SIZE=db-s-1vcpu-1gb
 OPT_DATABASE_VERSION=11
-
 OPT_ADD_DROPLETS=
 OPT_EXPUNGE_DROPLETS=
-
 OPT_FIREWALL_NAME=
-OPT_ADDRESSES=
 OPT_ADD_SELF_ADDRESS=
+OPT_ADDRESSES=
 OPT_PORTS=
-
 OPT_FORCE=
 
 OPT_OUTBOUND_RULES="protocol:tcp,ports:all,address:0.0.0.0/0,address:::/0 protocol:udp,ports:all,address:0.0.0.0/0,address:::/0"
 
 function error () {
   if [[ "${OS}" == "Darwin" ]]; then
-    echo "error: ${@}" >&2
+    echo "ERROR: ${@}" >&2
   else
-    echo -e "\e[0;31m\e[1merror: \e[0;0m${@}" >&2
+    echo -e "\e[0;31m\e[1mERROR: \e[0;0m${@}" >&2
   fi
 
   exit 1
@@ -66,24 +57,24 @@ function error () {
 
 function warn () {
   if [[ "${OS}" == "Darwin" ]]; then
-    echo "warning: ${@}" >&2
+    echo "WARNING: ${@}" >&2
   else
-    echo -e "\e[0;33mwarning: \e[0;0m${@}" >&2
+    echo -e "\e[0;33mWARNING: \e[0;0m${@}" >&2
   fi
 }
 
 function debug () {
   if [[ -n "${OPT_DEBUG}" ]]; then
-    echo '**'
-    echo \${@}: ${@}
-    echo \$OPT_DEBUG: "${OPT_DEBUG}"
+    echo -n "** "
+    echo "\${PWD}: ${PWD}"
+    echo "\${@}: ${@}"
   fi
 }
 
 function parse_arguments () {
   debug ${FUNCNAME[0]} "$@"
 
-  local opts=$(getopt -n "${SELF}" --options IN:DBFK:CXLli:r:z:E:R:Z:V:a:x:SA:P:f --longoptions help,debug,verbose,init,droplet,database,firewall,ssh-key:,create,expunge,list,list-short,droplet-image:,droplet-region:,droplet-size:,database-engine:,database-region:,database-size:,database-version:,add-droplets:,expunge-droplets:,add-self-address,addresses:,ports:,force -- "$@")
+  local opts=$(getopt -n "${SELF}" --options IN:DBFK:CXLli:r:z:E:R:Z:V:a:x:SA:P:f --longoptions help,debug,verbose,version,init,droplet,database,firewall,ssh-key:,create,expunge,list,list-short,droplet-image:,droplet-region:,droplet-size:,database-engine:,database-region:,database-size:,database-version:,add-droplets:,expunge-droplets:,add-self-address,addresses:,ports:,force -- "$@")
 
   if [[ $? != 0 ]]; then
     error "Failed to parse arguments. Exiting."
@@ -96,39 +87,30 @@ function parse_arguments () {
       (--help) OPT_HELP=true; shift ;;
       (--debug) OPT_DEBUG=true; shift ;;
       (--verbose) OPT_VERBOSE=true; shift ;;
-
-      (-I|--init) OPT_INIT=true; shift ;;
+      (--version) OPT_VERSION=true; shift ;;
       (-N|--name) OPT_NAME=$2; shift 2 ;;
-
+      (-I|--init) OPT_INIT=true; shift ;;
       (-D|--droplet) OPT_DROPLET=true; shift ;;
       (-B|--database) OPT_DATABASE=true; shift ;;
       (-F|--firewall) OPT_FIREWALL=true; shift ;;
-
       (-K|--ssh-key) OPT_SSH_KEY=$2; shift 2 ;;
-
       (-C|--create) OPT_CREATE=true; shift ;;
       (-X|--expunge) OPT_EXPUNGE=true; shift ;;
       (-L|--list) OPT_LIST=true; shift ;;
       (-l|--list-short) OPT_LIST_SHORT=true; shift ;;
-
       (-i|--droplet-image) OPT_DROPLET_IMAGE=$2; shift 2 ;;
       (-r|--droplet-region) OPT_DROPLET_REGION=$2; shift 2 ;;
       (-z|--droplet-size) OPT_DROPLET_SIZE=$2; shift 2 ;;
-
       (-E|--database-engine) OPT_DATABASE_ENGINE=$2; shift 2 ;;
       (-R|--database-region) OPT_DATABASE_REGION=$2; shift 2 ;;
       (-Z|--database-size) OPT_DATABASE_SIZE=$2; shift 2 ;;
       (-V|--database-version) OPT_DATABASE_VERSION=$2; shift 2 ;;
-
       (-a|--add-droplets) OPT_ADD_DROPLETS=$2; shift 2 ;;
       (-x|--expunge-droplets) OPT_EXPUNGE_DROPLETS=$2; shift 2 ;;
-
       (-S|--add-self-address) OPT_ADD_SELF_ADDRESS=true; shift ;;
       (-A|--addresses) OPT_ADDRESSES=$2; shift 2 ;;
       (-P|--ports) OPT_PORTS=$2; shift 2 ;;
-
       (-f|--force) OPT_FORCE=true; shift ;;
-
       (--) shift; break ;;
       (*) break ;;
     esac
@@ -140,6 +122,8 @@ function process_arguments () {
 
   if [[ -n "${OPT_HELP}" || "${#}" -lt 1 ]]; then
     display_usage
+  elif [[ -n "${OPT_VERSION}" ]]; then
+    display_version
   elif [[ -n "${OPT_INIT}" ]]; then
     init
     exit 0
@@ -188,6 +172,7 @@ OPTIONS:
       --help              Show this help
       --debug             Enable debugging mode
       --verbose           Enable verbose output
+      --version           Display program version info
   -N, --name              The name of the droplet, database, or firewall to manage
   -I, --init              Run the initialization commands
   -D, --droplet           Knob to set droplet operations
@@ -210,7 +195,16 @@ OPTIONS:
   -S, --add-self-address  Add own public IP address to list of IP addresses to allow
   -A, --addresses         A comma-separated list of IP addresses to allow
   -P, --ports             A comma-separated list of allowed ports
-  -f, --force             Do not prompt user for confirmation
+  -f, --force             Do not prompt user for operation confirmations
+EOF
+  exit 0
+}
+
+function display_version () {
+  debug ${FUNCNAME[0]} "$@"
+
+  cat << EOF
+${SELF} v${VERSION}
 EOF
   exit 0
 }
@@ -221,20 +215,20 @@ function read_config () {
   if [[ -n "${OPT_CONFIG}" ]]; then
     source "${OPT_CONFIG}"
   else
-    if [[ -e "${OPT_USER_HOME_CONFIG}" ]]; then
-      source "${OPT_USER_HOME_CONFIG}"
+    if [[ -e "${VAL_USER_HOME_CONFIG}" ]]; then
+      source "${VAL_USER_HOME_CONFIG}"
       OPT_TOKEN=${TOKEN}
       return 0
     fi
 
-    if [[ -e "${OPT_USER_XDG_CONFIG}" ]]; then
-      source "${OPT_USER_XDG_CONFIG}"
+    if [[ -e "${VAL_USER_XDG_CONFIG}" ]]; then
+      source "${VAL_USER_XDG_CONFIG}"
       OPT_TOKEN=${TOKEN}
       return 0
     fi
 
-    if [[ -e "${OPT_GLOBAL_CONFIG}" ]]; then
-      source "${OPT_GLOBAL_CONFIG}"
+    if [[ -e "${VAL_GLOBAL_CONFIG}" ]]; then
+      source "${VAL_GLOBAL_CONFIG}"
       OPT_TOKEN=${TOKEN}
       return 0
     fi

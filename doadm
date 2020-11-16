@@ -5,7 +5,7 @@ set -euo pipefail
 readonly SELF="$(basename ${BASH_SOURCE[0]})"
 readonly SELF_DIR="$(cd $(dirname ${BASH_SOURCE[0]}) > /dev/null 2>&1 && pwd)"
 readonly OS="$(uname)"
-readonly VERSION="1.3.0"
+readonly VERSION="1.3.1"
 
 OPT_HELP=
 OPT_DEBUG=
@@ -133,7 +133,7 @@ function process_arguments () {
     if [[ -n "${OPT_DROPLET}" ]]; then
       list_droplets
       exit 0
-    elif [[ -n "${OPT_DATABASES}" ]]; then
+    elif [[ -n "${OPT_DATABASE}" ]]; then
       list_databases
       exit 0
     elif [[ -n "${OPT_FIREWALL}" ]]; then

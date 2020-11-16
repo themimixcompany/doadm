@@ -5,7 +5,7 @@ set -euo pipefail
 readonly SELF="$(basename ${BASH_SOURCE[0]})"
 readonly SELF_DIR="$(cd $(dirname ${BASH_SOURCE[0]}) > /dev/null 2>&1 && pwd)"
 readonly OS="$(uname)"
-readonly VERSION="1.2.7"
+readonly VERSION="1.3.0"
 
 OPT_HELP=
 OPT_DEBUG=
@@ -19,6 +19,7 @@ readonly VAL_OUTBOUND_RULES="protocol:tcp,ports:all,address:0.0.0.0/0,address:::
 
 OPT_CONFIG=
 OPT_NAME=
+OPT_NEW_NAME=
 OPT_INIT=
 OPT_DROPLET=
 OPT_DATABASE=
@@ -26,6 +27,7 @@ OPT_FIREWALL=
 OPT_SSH_KEY=
 OPT_CREATE=
 OPT_EXPUNGE=
+OPT_RENAME=
 OPT_LIST=
 OPT_LIST_SHORT=
 OPT_DROPLET_IMAGE=ubuntu-20-04-x64 # doctl compute image list-distribution
@@ -72,7 +74,7 @@ function debug () {
 function parse_arguments () {
   debug ${FUNCNAME[0]} "$@"
 
-  local opts=$(getopt -n "${SELF}" --options ICXDBFN:K:Lli:r:z:E:R:Z:V:a:x:SA:P: --longoptions help,debug,verbose,version,init,droplet,database,firewall,ssh-key:,create,expunge,list,list-short,droplet-image:,droplet-region:,droplet-size:,database-engine:,database-region:,database-size:,database-version:,add-droplets:,expunge-droplets:,add-self-address,addresses:,ports:,force -- "$@")
+  local opts=$(getopt -n "${SELF}" --options ICXRDBFN:n:K:Lli:g:z:E:G:Z:V:a:x:SA:P: --longoptions help,debug,verbose,version,init,create,expunge,rename,droplet,database,firewall,name:,new-name:,ssh-key:,list,list-short,droplet-image:,droplet-region:,droplet-size:,database-engine:,database-region:,database-size:,database-version:,add-droplets:,expunge-droplets:,add-self-address,addresses:,ports:,force -- "$@")
 
   if [[ $? != 0 ]]; then
     error "Failed to parse arguments. Aborting."
@@ -89,18 +91,20 @@ function parse_arguments () {
       (-I|--init) OPT_INIT=true; shift ;;
       (-C|--create) OPT_CREATE=true; shift ;;
       (-X|--expunge) OPT_EXPUNGE=true; shift ;;
+      (-R|--rename) OPT_RENAME=true; shift ;;
       (-D|--droplet) OPT_DROPLET=true; shift ;;
       (-B|--database) OPT_DATABASE=true; shift ;;
       (-F|--firewall) OPT_FIREWALL=true; shift ;;
       (-N|--name) OPT_NAME=$2; shift 2 ;;
+      (-n|--new-name) OPT_NEW_NAME=$2; shift 2 ;;
       (-K|--ssh-key) OPT_SSH_KEY=$2; shift 2 ;;
       (-L|--list) OPT_LIST=true; shift ;;
       (-l|--list-short) OPT_LIST_SHORT=true; shift ;;
       (-i|--droplet-image) OPT_DROPLET_IMAGE=$2; shift 2 ;;
-      (-r|--droplet-region) OPT_DROPLET_REGION=$2; shift 2 ;;
+      (-g|--droplet-region) OPT_DROPLET_REGION=$2; shift 2 ;;
       (-z|--droplet-size) OPT_DROPLET_SIZE=$2; shift 2 ;;
       (-E|--database-engine) OPT_DATABASE_ENGINE=$2; shift 2 ;;
-      (-R|--database-region) OPT_DATABASE_REGION=$2; shift 2 ;;
+      (-G|--database-region) OPT_DATABASE_REGION=$2; shift 2 ;;
       (-Z|--database-size) OPT_DATABASE_SIZE=$2; shift 2 ;;
       (-V|--database-version) OPT_DATABASE_VERSION=$2; shift 2 ;;
       (-a|--add-droplets) OPT_ADD_DROPLETS=$2; shift 2 ;;
@@ -174,18 +178,20 @@ OPTIONS:
   -I, --init              Run the initialization commands
   -C, --create            Create a droplet, database, or firewall
   -X, --expunge           Expunge a droplet, database, or firewall
+  -R, --rename            Rename a droplet. Use with -n
   -D, --droplet           Knob to set droplet operations
   -B, --database          Knob to set database operations
   -F, --firewall          Knob to set database operations
   -N, --name              The name of the droplet, database, or firewall to manage
+  -n, --new-name          The new name of the droplet
   -K, --ssh-key           Set the allowed SSH key for the droplet
   -L, --list              List all the droplets, databases, or firewalls
   -l, --list-short        List all the droplets, databases, or firewalls in short format
   -i, --droplet-image     Set the droplet image (default: ${OPT_DROPLET_IMAGE})
-  -r, --droplet-region    Set the droplet region (default: ${OPT_DROPLET_REGION})
+  -g, --droplet-region    Set the droplet region (default: ${OPT_DROPLET_REGION})
   -s, --droplet-size      Set the droplet size (default: ${OPT_DROPLET_SIZE})
   -E, --database-engine   Set the database engine (default: ${OPT_DATABASE_ENGINE})
-  -R, --database-region   Set the database region (default: ${OPT_DATABASE_REGION})
+  -G, --database-region   Set the database region (default: ${OPT_DATABASE_REGION})
   -S, --database-size     Set the database size (default: ${OPT_DATABASE_SIZE})
   -V, --database-version  Set the database version (default: ${OPT_DATABASE_VERSION})
   -a, --add-droplets      A comma-separated list of droplets names to add to the firewall
@@ -294,6 +300,15 @@ function expunge_droplet () {
     else
       doctl compute droplet delete "${id}" || true
     fi
+  done
+}
+
+function rename_droplet () {
+  debug ${FUNCNAME[0]} "$@"
+
+  for id in $(get_droplet_id ${OPT_NAME}); do
+    echo "${id} ${OPT_NAME}"
+    doctl compute droplet-action rename "${id}" --droplet-name "${OPT_NEW_NAME}" || true
   done
 }
 
@@ -489,7 +504,7 @@ function firewall_mode () {
 function create_mode () {
   debug ${FUNCNAME[0]} "$@"
 
-  if [[ -n "${OPT_CREATE}" && -z "${OPT_EXPUNGE}" ]]; then
+  if [[ -n "${OPT_CREATE}" ]]; then
     return 0
   else
     return 1
@@ -499,7 +514,17 @@ function create_mode () {
 function expunge_mode () {
   debug ${FUNCNAME[0]} "$@"
 
-  if [[ -n "${OPT_EXPUNGE}" && -z "${OPT_CREATE}" ]]; then
+  if [[ -n "${OPT_EXPUNGE}" ]]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+function rename_mode () {
+  debug ${FUNCNAME[0]} "$@"
+
+  if [[ -n "${OPT_RENAME}" ]]; then
     return 0
   else
     return 1
@@ -532,6 +557,12 @@ function run () {
       expunge_database
     elif firewall_mode; then
       expunge_firewall
+    else
+      display_usage
+    fi
+  elif rename_mode; then
+    if droplet_mode; then
+      rename_droplet
     else
       display_usage
     fi

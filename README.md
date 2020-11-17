@@ -42,30 +42,30 @@ Before using this script, you must first authenticate with DigitalOcean. To do s
 
 To create a droplet with the name `droplet-1`, run:
 
-    doadm -CDN droplet-1
+    doadm -cdn droplet-1
 
 To expunge the droplet with the name `droplet-1`, run:
 
-    doadm -XDN droplet-1
+    doadm -xdn droplet-1
 
 To display the list of droplets, run:
 
-    doadm -lD
+    doadm -ld
 
 
 ### <a name="databases">Databases</a>
 
 To create the PostgreSQL database `mimix-db-1`, run:
 
-    doadm -CBN mimix-db-1
+    doadm -cbn mimix-db-1
 
 To destroy the PostgreSQL database `mimix-db-1`, run:
 
-    doadm -XBN mimix-db-1
+    doadm -xbn mimix-db-1
 
 To display the list of databases, run:
 
-    doadm -lB
+    doadm -lb
 
 
 ### <a name="firewalls">Firewalls</a>
@@ -74,19 +74,19 @@ To create or apply the firewall `mimix` to the droplets `droplet-1` and `droplet
 allowing access from your public IP address and `62.5.13.190` only, on the ports `22`, `80`, and
 `443`, run:
 
-    doadm -CFN mimix -a droplet-1,droplet-2 -SA 62.5.13.190 -P 22,80,443
+    doadm -cfn mimix -a droplet-1,droplet-2 -SA 62.5.13.190 -P 22,80,443
 
 To expel `droplet-2` from the firewall `mimix`, run:
 
-    doadm -CFN mimix -x droplet-2
+    doadm -cfn mimix -X droplet-2
 
 To expunge the firewall `mimix` and its association with any droplet, run:
 
-    doadm -XXN mimix
+    doadm -xfn mimix
 
 To display the list of firewalls, run:
 
-    doadm -lF
+    doadm -lf
 
 
 ### <a name="miscellany">Miscellany</a>

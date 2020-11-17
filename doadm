@@ -24,7 +24,7 @@ OPT_INIT=
 OPT_DROPLET=
 OPT_DATABASE=
 OPT_FIREWALL=
-OPT_SSH_KEY=
+OPT_SSH_KEYS=
 OPT_CREATE=
 OPT_EXPUNGE=
 OPT_RENAME=
@@ -74,7 +74,7 @@ function debug () {
 function parse_arguments () {
   debug ${FUNCNAME[0]} "$@"
 
-  local opts=$(getopt -n "${SELF}" --options ICXRDBFN:n:K:Lli:g:z:E:G:Z:V:a:x:SA:P: --longoptions help,debug,verbose,version,init,create,expunge,rename,droplet,database,firewall,name:,new-name:,ssh-key:,list,list-short,droplet-image:,droplet-region:,droplet-size:,database-engine:,database-region:,database-size:,database-version:,add-droplets:,expunge-droplets:,add-self-address,addresses:,ports:,force -- "$@")
+  local opts=$(getopt -n "${SELF}" --options Icxrdbfn:N:k:Lli:g:z:E:G:Z:V:a:X:SA:P: --longoptions help,debug,verbose,version,init,create,expunge,rename,droplet,database,firewall,name:,new-name:,ssh-key:,list,list-short,droplet-image:,droplet-region:,droplet-size:,database-engine:,database-region:,database-size:,database-version:,add-droplets:,expunge-droplets:,add-self-address,addresses:,ports:,force -- "$@")
 
   if [[ $? != 0 ]]; then
     error "Failed to parse arguments. Aborting."
@@ -89,15 +89,15 @@ function parse_arguments () {
       (--verbose) OPT_VERBOSE=true; shift ;;
       (--version) OPT_VERSION=true; shift ;;
       (-I|--init) OPT_INIT=true; shift ;;
-      (-C|--create) OPT_CREATE=true; shift ;;
-      (-X|--expunge) OPT_EXPUNGE=true; shift ;;
-      (-R|--rename) OPT_RENAME=true; shift ;;
-      (-D|--droplet) OPT_DROPLET=true; shift ;;
-      (-B|--database) OPT_DATABASE=true; shift ;;
-      (-F|--firewall) OPT_FIREWALL=true; shift ;;
-      (-N|--name) OPT_NAME=$2; shift 2 ;;
-      (-n|--new-name) OPT_NEW_NAME=$2; shift 2 ;;
-      (-K|--ssh-key) OPT_SSH_KEY=$2; shift 2 ;;
+      (-c|--create) OPT_CREATE=true; shift ;;
+      (-x|--expunge) OPT_EXPUNGE=true; shift ;;
+      (-r|--rename) OPT_RENAME=true; shift ;;
+      (-d|--droplet) OPT_DROPLET=true; shift ;;
+      (-b|--database) OPT_DATABASE=true; shift ;;
+      (-f|--firewall) OPT_FIREWALL=true; shift ;;
+      (-n|--name) OPT_NAME=$2; shift 2 ;;
+      (-N|--new-name) OPT_NEW_NAME=$2; shift 2 ;;
+      (-k|--ssh-key) OPT_SSH_KEYS=$2; shift 2 ;;
       (-L|--list) OPT_LIST=true; shift ;;
       (-l|--list-short) OPT_LIST_SHORT=true; shift ;;
       (-i|--droplet-image) OPT_DROPLET_IMAGE=$2; shift 2 ;;
@@ -108,7 +108,7 @@ function parse_arguments () {
       (-Z|--database-size) OPT_DATABASE_SIZE=$2; shift 2 ;;
       (-V|--database-version) OPT_DATABASE_VERSION=$2; shift 2 ;;
       (-a|--add-droplets) OPT_ADD_DROPLETS=$2; shift 2 ;;
-      (-x|--expunge-droplets) OPT_EXPUNGE_DROPLETS=$2; shift 2 ;;
+      (-X|--expunge-droplets) OPT_EXPUNGE_DROPLETS=$2; shift 2 ;;
       (-S|--add-self-address) OPT_ADD_SELF_ADDRESS=true; shift ;;
       (-A|--addresses) OPT_ADDRESSES=$2; shift 2 ;;
       (-P|--ports) OPT_PORTS=$2; shift 2 ;;
@@ -176,14 +176,14 @@ OPTIONS:
       --verbose           Enable verbose output
       --version           Display program version info
   -I, --init              Run the initialization commands
-  -C, --create            Create a droplet, database, or firewall
-  -X, --expunge           Expunge a droplet, database, or firewall
-  -R, --rename            Rename a droplet. Use with -n
-  -D, --droplet           Knob to set droplet operations
-  -B, --database          Knob to set database operations
-  -F, --firewall          Knob to set database operations
-  -N, --name              The name of the droplet, database, or firewall to manage
-  -n, --new-name          The new name of the droplet
+  -c, --create            Create a droplet, database, or firewall
+  -x, --expunge           Expunge a droplet, database, or firewall
+  -r, --rename            Rename a droplet. Use with -n
+  -d, --droplet           Knob to set droplet operations
+  -b, --database          Knob to set database operations
+  -f, --firewall          Knob to set database operations
+  -n, --name              The name of the droplet, database, or firewall to manage
+  -N, --new-name          The new name of the droplet
   -K, --ssh-key           Set the allowed SSH key for the droplet
   -L, --list              List all the droplets, databases, or firewalls
   -l, --list-short        List all the droplets, databases, or firewalls in short format
@@ -195,7 +195,7 @@ OPTIONS:
   -S, --database-size     Set the database size (default: ${OPT_DATABASE_SIZE})
   -V, --database-version  Set the database version (default: ${OPT_DATABASE_VERSION})
   -a, --add-droplets      A comma-separated list of droplets names to add to the firewall
-  -x, --expunge-droplets  A comma-separated list of droplets names to expunge to the firewall
+  -X, --expunge-droplets  A comma-separated list of droplets names to expunge to the firewall
   -S, --add-self-address  Add own public IP address to list of IP addresses to allow
   -A, --addresses         A comma-separated list of IP addresses to allow
   -P, --ports             A comma-separated list of allowed ports
@@ -285,7 +285,7 @@ function create_droplet () {
         --image "${OPT_DROPLET_IMAGE}" \
         --region "${OPT_DROPLET_REGION}" \
         --size "${OPT_DROPLET_SIZE}" \
-        --ssh-keys "${OPT_SSH_KEY}" \
+        --ssh-keys "${OPT_SSH_KEYS}" \
         --wait \
         "${OPT_NAME}" | sed 1d | awk '{print $3}'
 }

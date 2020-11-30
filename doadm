@@ -17,6 +17,8 @@ readonly VAL_USER_XDG_CONFIG=$HOME/.config/${SELF}/${SELF}rc
 readonly VAL_USER_HOME_CONFIG=$HOME/.${SELF}rc
 readonly VAL_OUTBOUND_RULES="protocol:tcp,ports:all,address:0.0.0.0/0,address:::/0 protocol:udp,ports:all,address:0.0.0.0/0,address:::/0"
 
+readonly VAL_ICMP_RULE="protocol:icmp,address:0.0.0.0/0,address:::/0 "
+
 OPT_CONFIG=
 OPT_NAME=
 OPT_NEW_NAME=
@@ -44,6 +46,7 @@ OPT_ADD_SELF_ADDRESS=
 OPT_ADDRESSES=
 OPT_PORTS=
 OPT_FORCE=
+OPT_POWER=
 
 function error () {
   if [[ "${OS}" == "Darwin" ]]; then
@@ -74,7 +77,7 @@ function debug () {
 function parse_arguments () {
   debug ${FUNCNAME[0]} "$@"
 
-  local opts=$(getopt -n "${SELF}" --options Icxrdbfn:N:k:Lli:g:z:E:G:Z:V:a:X:SA:P: --longoptions help,debug,verbose,version,init,create,expunge,rename,droplet,database,firewall,name:,new-name:,ssh-key:,list,list-short,droplet-image:,droplet-region:,droplet-size:,database-engine:,database-region:,database-size:,database-version:,add-droplets:,expunge-droplets:,add-self-address,addresses:,ports:,force -- "$@")
+  local opts=$(getopt -n "${SELF}" --options Icxrdbfn:N:k:Lli:g:z:E:G:Z:V:a:X:SA:P:oO --longoptions help,debug,verbose,version,init,create,expunge,rename,droplet,database,firewall,name:,new-name:,ssh-key:,list,list-short,droplet-image:,droplet-region:,droplet-size:,database-engine:,database-region:,database-size:,database-version:,add-droplets:,expunge-droplets:,add-self-address,addresses:,ports:,force,power-on,power-off -- "$@")
 
   if [[ $? != 0 ]]; then
     error "Failed to parse arguments. Aborting."
@@ -112,6 +115,8 @@ function parse_arguments () {
       (-S|--add-self-address) OPT_ADD_SELF_ADDRESS=true; shift ;;
       (-A|--addresses) OPT_ADDRESSES=$2; shift 2 ;;
       (-P|--ports) OPT_PORTS=$2; shift 2 ;;
+      (--power-on) OPT_POWER="on"; shift ;;
+      (--power-off) OPT_POWER="off"; shift ;;
       (--force) OPT_FORCE=true; shift ;;
       (--) shift; break ;;
       (*) break ;;
@@ -156,9 +161,10 @@ function process_arguments () {
       display_usage
     fi
   elif [[ -z "${OPT_NAME}" ]]; then
+    echo "then 0"
     display_usage
-  elif [[ -z "${OPT_DROPLET}" && -z "${OPT_DATABASE}" && -z "${OPT_FIREWALL}" ]]; then
-    display_usage
+  # elif [[ -z "${OPT_DROPLET}" && -z "${OPT_DATABASE}" && -z "${OPT_FIREWALL}" && -z "${OPT_POWER}" ]]; then
+  #   display_usage
   else
     return 0
   fi
@@ -200,6 +206,8 @@ OPTIONS:
   -A, --addresses         A comma-separated list of IP addresses to allow
   -P, --ports             A comma-separated list of allowed ports
       --force             Do not prompt user for operation confirmations
+  -o, --power-on          Turn a droplet on
+  -O, --power-off         Turn a droplet off
 EOF
   exit 0
 }
@@ -531,8 +539,26 @@ function rename_mode () {
   fi
 }
 
-function update_mode () {
+function power_mode () {
   debug ${FUNCNAME[0]} "$@"
+
+  if [[ -n "${OPT_POWER}" ]]; then
+    return 0
+  else
+    retun 1
+  fi
+}
+
+function handle_power_mode () {
+  debug ${FUNCNAME[0]} "$@"
+
+  local id="$(get_droplet_id ${OPT_NAME})"
+
+  case "${OPT_POWER}" in
+    "on") doctl compute droplet-action power-on "${id}" ;;
+    "off") doctl compute droplet-action power-off "${id}" ;;
+    *) display_usage ;;
+  esac
 
   return 1
 }
@@ -563,6 +589,13 @@ function run () {
   elif rename_mode; then
     if droplet_mode; then
       rename_droplet
+    else
+      display_usage
+    fi
+  elif power_mode; then
+    echo "then 1"
+    if droplet_mode; then
+      handle_power_mode
     else
       display_usage
     fi

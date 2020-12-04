@@ -75,7 +75,7 @@ function debug () {
 }
 
 function parse_arguments () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   local opts=$(getopt -n "${SELF}" --options Icxrdbfn:N:k:Lli:g:z:E:G:Z:V:a:X:SA:P:oO --longoptions help,debug,verbose,version,init,create,expunge,rename,droplet,database,firewall,name:,new-name:,ssh-key:,list,list-short,droplet-image:,droplet-region:,droplet-size:,database-engine:,database-region:,database-size:,database-version:,add-droplets:,expunge-droplets:,add-self-address,addresses:,ports:,force,power-on,power-off -- "$@")
 
@@ -125,7 +125,7 @@ function parse_arguments () {
 }
 
 function process_arguments () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   if [[ -n "${OPT_HELP}" || "${#}" -lt 1 ]]; then
     display_usage
@@ -171,7 +171,7 @@ function process_arguments () {
 }
 
 function display_usage () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   cat << EOF
 ${SELF} v${VERSION} [OPTIONS]...
@@ -213,7 +213,7 @@ EOF
 }
 
 function display_version () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   cat << EOF
 ${SELF} v${VERSION}
@@ -222,7 +222,7 @@ EOF
 }
 
 function read_config () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   if [[ -n "${OPT_CONFIG}" ]]; then
     source "${OPT_CONFIG}"
@@ -248,31 +248,31 @@ function read_config () {
 }
 
 function init () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   doctl auth init
 }
 
 function list_droplets () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   doctl compute droplet list
 }
 
 function list_droplets_short () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   list_droplets | sed 1d | awk '{print $1 " " $2 " " $3}' | column -t
 }
 
 function get_droplet_id () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   list_droplets | awk "/[0-9]+\s+${1}/" | awk '{print $1}'
 }
 
 function get_droplet_ids () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   local OIFS=${IFS}
 
@@ -286,7 +286,7 @@ function get_droplet_ids () {
 }
 
 function create_droplet () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   doctl compute droplet create \
         --enable-backups \
@@ -299,7 +299,7 @@ function create_droplet () {
 }
 
 function expunge_droplet () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   for id in $(get_droplet_id ${OPT_NAME}); do
     echo "${id} ${OPT_NAME}"
@@ -312,7 +312,7 @@ function expunge_droplet () {
 }
 
 function rename_droplet () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   for id in $(get_droplet_id ${OPT_NAME}); do
     echo "${id} ${OPT_NAME}"
@@ -321,25 +321,25 @@ function rename_droplet () {
 }
 
 function list_databases () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   doctl databases list
 }
 
 function list_databases_short () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   list_databases | sed 1d | awk '{print $1 " " $2}' | column -t
 }
 
 function get_database_id () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   list_databases | awk "/[0-9]+\s+${1}/" | awk '{print $1}'
 }
 
 function create_database () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   doctl databases create \
         --engine "${OPT_DATABASE_ENGINE}" \
@@ -350,7 +350,7 @@ function create_database () {
 }
 
 function expunge_database () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   local id="$(get_database_id ${OPT_NAME})"
 
@@ -365,25 +365,25 @@ function expunge_database () {
 }
 
 function list_firewalls () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   doctl compute firewall list
 }
 
 function list_firewalls_short () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   list_firewalls | sed 1d | awk '{print $1 " " $2}' | column -t
 }
 
 function get_firewall_id () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   list_firewalls_short | egrep " ${1}$" | awk '{print $1}'
 }
 
 function extra_addresses () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   if [[ -n "${OPT_ADD_SELF_ADDRESS}" ]]; then
     dig +short myip.opendns.com @resolver1.opendns.com
@@ -391,7 +391,7 @@ function extra_addresses () {
 }
 
 function compose_addresses () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   local _extra=$(extra_addresses)
   local extra=
@@ -412,7 +412,7 @@ function compose_addresses () {
 }
 
 function compose_inbound_rules () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   local OIFS=${IFS}
   IFS="," read -ra PORTS <<< "${OPT_PORTS}"
@@ -425,7 +425,7 @@ function compose_inbound_rules () {
 }
 
 function create_firewall () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   local firewall_id="$(get_firewall_id ${OPT_NAME})"
   local droplet_ids=
@@ -465,7 +465,7 @@ function create_firewall () {
 }
 
 function expunge_firewall () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   local id="$(get_firewall_id ${OPT_NAME})"
 
@@ -480,7 +480,7 @@ function expunge_firewall () {
 }
 
 function droplet_mode () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   if [[ -n "${OPT_NAME}" && -n "${OPT_DROPLET}" && -z "${OPT_DATABASE}" && -z "${OPT_FIREWALL}" ]]; then
     return 0
@@ -490,7 +490,7 @@ function droplet_mode () {
 }
 
 function database_mode () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   if [[ -n "${OPT_NAME}" && -n "${OPT_DATABASE}" && -z "${OPT_DROPLET}" && -z "${OPT_FIREWALL}" ]]; then
     return 0
@@ -500,7 +500,7 @@ function database_mode () {
 }
 
 function firewall_mode () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   if [[ -n "${OPT_NAME}" && -n "${OPT_FIREWALL}" && -z "${OPT_DROPLET}" && -z "${OPT_DATABASE}" ]]; then
     return 0
@@ -510,7 +510,7 @@ function firewall_mode () {
 }
 
 function create_mode () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   if [[ -n "${OPT_CREATE}" ]]; then
     return 0
@@ -520,7 +520,7 @@ function create_mode () {
 }
 
 function expunge_mode () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   if [[ -n "${OPT_EXPUNGE}" ]]; then
     return 0
@@ -530,7 +530,7 @@ function expunge_mode () {
 }
 
 function rename_mode () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   if [[ -n "${OPT_RENAME}" ]]; then
     return 0
@@ -540,7 +540,7 @@ function rename_mode () {
 }
 
 function power_mode () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   if [[ -n "${OPT_POWER}" ]]; then
     return 0
@@ -550,7 +550,7 @@ function power_mode () {
 }
 
 function handle_power_mode () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   local id="$(get_droplet_id ${OPT_NAME})"
 
@@ -564,7 +564,7 @@ function handle_power_mode () {
 }
 
 function run () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   if create_mode; then
     if droplet_mode; then
@@ -605,7 +605,7 @@ function run () {
 }
 
 function main () {
-  debug ${FUNCNAME[0]} "$@"
+  debug "${FUNCNAME[0]}" "$@"
 
   parse_arguments "$@"
   process_arguments "$@"

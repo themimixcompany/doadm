@@ -5,7 +5,7 @@ set -euo pipefail
 readonly SELF="$(basename ${BASH_SOURCE[0]})"
 readonly SELF_DIR="$(cd $(dirname ${BASH_SOURCE[0]}) > /dev/null 2>&1 && pwd)"
 readonly OS="$(uname)"
-readonly VERSION="1.3.2"
+readonly VERSION="1.4.0"
 
 OPT_HELP=
 OPT_DEBUG=
@@ -23,9 +23,12 @@ OPT_CONFIG=
 OPT_NAME=
 OPT_NEW_NAME=
 OPT_INIT=
+
 OPT_DROPLET=
 OPT_DATABASE=
 OPT_FIREWALL=
+OPT_DOMAIN=
+
 OPT_SSH_KEYS=
 OPT_CREATE=
 OPT_EXPUNGE=
@@ -45,6 +48,8 @@ OPT_FIREWALL_NAME=
 OPT_ADD_SELF_ADDRESS=
 OPT_ADDRESSES=
 OPT_PORTS=
+OPT_SUBDOMAIN=
+OPT_RECORD_TYPE="A"
 OPT_FORCE=
 OPT_POWER=
 
@@ -77,7 +82,7 @@ function debug () {
 function parse_arguments () {
   debug "${FUNCNAME[0]}" "$@"
 
-  local opts=$(getopt -n "${SELF}" --options Icxrdbfn:N:k:Lli:g:z:E:G:Z:V:a:X:SA:P:oO --longoptions help,debug,verbose,version,init,create,expunge,rename,droplet,database,firewall,name:,new-name:,ssh-key:,list,list-short,droplet-image:,droplet-region:,droplet-size:,database-engine:,database-region:,database-size:,database-version:,add-droplets:,expunge-droplets:,add-self-address,addresses:,ports:,force,power-on,power-off -- "$@")
+  local opts=$(getopt -n "${SELF}" --options IcxrdbfDn:N:k:Lli:g:z:E:G:Z:V:a:X:SA:P:s:t:oO --longoptions help,debug,verbose,version,init,create,expunge,rename,droplet,database,firewall,domain,name:,new-name:,ssh-key:,list,list-short,droplet-image:,droplet-region:,droplet-size:,database-engine:,database-region:,database-size:,database-version:,add-droplets:,expunge-droplets:,add-self-address,addresses:,ports:,subdomain:,record-type:,force,power-on,power-off -- "$@")
 
   if [[ $? != 0 ]]; then
     error "Failed to parse arguments. Aborting."
@@ -98,6 +103,7 @@ function parse_arguments () {
       (-d|--droplet) OPT_DROPLET=true; shift ;;
       (-b|--database) OPT_DATABASE=true; shift ;;
       (-f|--firewall) OPT_FIREWALL=true; shift ;;
+      (-D|--domain) OPT_DOMAIN=true; shift ;;
       (-n|--name) OPT_NAME=$2; shift 2 ;;
       (-N|--new-name) OPT_NEW_NAME=$2; shift 2 ;;
       (-k|--ssh-key) OPT_SSH_KEYS=$2; shift 2 ;;
@@ -115,6 +121,8 @@ function parse_arguments () {
       (-S|--add-self-address) OPT_ADD_SELF_ADDRESS=true; shift ;;
       (-A|--addresses) OPT_ADDRESSES=$2; shift 2 ;;
       (-P|--ports) OPT_PORTS=$2; shift 2 ;;
+      (-s|--subdomain) OPT_SUBDOMAIN=$2; shift 2 ;;
+      (-t|--record-type) OPT_RECORD_TYPE=$2; shift 2 ;;
       (--power-on) OPT_POWER="on"; shift ;;
       (--power-off) OPT_POWER="off"; shift ;;
       (--force) OPT_FORCE=true; shift ;;
@@ -144,6 +152,9 @@ function process_arguments () {
     elif [[ -n "${OPT_FIREWALL}" ]]; then
       list_firewalls
       exit 0
+    elif [[ -n "${OPT_DOMAIN}" ]]; then
+      list_domains
+      exit 0
     else
       display_usage
     fi
@@ -156,6 +167,9 @@ function process_arguments () {
       exit 0
     elif [[ -n "${OPT_FIREWALL}" ]]; then
       list_firewalls_short
+      exit 0
+    elif [[ -n "${OPT_DOMAIN}" ]]; then
+      list_domains_short
       exit 0
     else
       display_usage
@@ -186,6 +200,7 @@ OPTIONS:
   -d, --droplet           Knob to set droplet operations
   -b, --database          Knob to set database operations
   -f, --firewall          Knob to set database operations
+  -D, --domain               Knob to set DOMAIN operations
   -n, --name              The name of the droplet, database, or firewall to manage
   -N, --new-name          The new name of the droplet
   -K, --ssh-key           Set the allowed SSH key for the droplet
@@ -203,6 +218,8 @@ OPTIONS:
   -S, --add-self-address  Add own public IP address to list of IP addresses to allow
   -A, --addresses         A comma-separated list of IP addresses to allow
   -P, --ports             A comma-separated list of allowed ports
+  -s, --subdomain         The subdomain to manage
+  -t, --record-type       The type of DNS record to manage
       --force             Do not prompt user for operation confirmations
   -o, --power-on          Turn a droplet on
   -O, --power-off         Turn a droplet off
@@ -477,74 +494,114 @@ function expunge_firewall () {
   fi
 }
 
+function list_domains () {
+  debug "${FUNCNAME[0]}" "$@"
+
+  if [[ -n "${OPT_NAME}" ]]; then
+    doctl compute domain records list "${OPT_NAME}" \
+      | awk "/[0-9]+\s+${OPT_RECORD_TYPE}/" \
+      | column -t
+  else
+    display_usage
+  fi
+}
+
+function list_domains_short () {
+  debug "${FUNCNAME[0]}" "$@"
+
+  if [[ -n "${OPT_NAME}" ]]; then
+    doctl compute domain records list "${OPT_NAME}" \
+      | awk "/[0-9]+\s+${OPT_RECORD_TYPE}/" \
+      | awk '{print $1 " " $2 " " $3 " " $4}' \
+      | column -t
+  else
+    display_usage
+  fi
+}
+
+function create_domain () {
+  debug "${FUNCNAME[0]}" "$@"
+
+  if [[ -n "${OPT_NAME}" && -n "${OPT_RECORD_TYPE}" && -n "${OPT_SUBDOMAIN}" && -n "${OPT_ADDRESSES}" ]]; then
+    doctl compute domain records create \
+          "${OPT_NAME}" \
+          --record-type "${OPT_RECORD_TYPE}" \
+          --record-name "${OPT_SUBDOMAIN}" \
+          --record-data "${OPT_ADDRESSES}"
+  else
+    display_usage
+  fi
+}
+
+function get_domain_id () {
+  debug "${FUNCNAME[0]}" "$@"
+
+  list_domains | awk "/[0-9]+\s+${1}\s+${2}\s+/" | awk '{print $1}'
+}
+
+function expunge_domain () {
+  debug "${FUNCNAME[0]}" "$@"
+
+  local id="$(get_domain_id ${OPT_RECORD_TYPE} ${OPT_SUBDOMAIN})"
+
+  if [[ -n "${OPT_NAME}" && -n "${OPT_RECORD_TYPE}" && -n "${OPT_SUBDOMAIN}" && -n "${id}" ]]; then
+    echo "${id} ${OPT_RECORD_TYPE} ${OPT_SUBDOMAIN} ${OPT_NAME}"
+    if [[ -n "${OPT_FORCE}" ]]; then
+      doctl compute domain records delete --force "${OPT_NAME}" "${id}" || true
+    else
+      doctl compute domain records delete "${OPT_NAME}" "${id}" || true
+    fi
+  else
+    display_usage
+  fi
+}
+
 function droplet_mode () {
   debug "${FUNCNAME[0]}" "$@"
 
-  if [[ -n "${OPT_NAME}" && -n "${OPT_DROPLET}" && -z "${OPT_DATABASE}" && -z "${OPT_FIREWALL}" ]]; then
-    return 0
-  else
-    return 1
-  fi
+  [[ -n "${OPT_NAME}" && -n "${OPT_DROPLET}" ]] && return 0
 }
 
 function database_mode () {
   debug "${FUNCNAME[0]}" "$@"
 
-  if [[ -n "${OPT_NAME}" && -n "${OPT_DATABASE}" && -z "${OPT_DROPLET}" && -z "${OPT_FIREWALL}" ]]; then
-    return 0
-  else
-    return 1
-  fi
+  [[ -n "${OPT_NAME}" && -n "${OPT_DATABASE}" ]] && return 0
 }
 
 function firewall_mode () {
   debug "${FUNCNAME[0]}" "$@"
 
-  if [[ -n "${OPT_NAME}" && -n "${OPT_FIREWALL}" && -z "${OPT_DROPLET}" && -z "${OPT_DATABASE}" ]]; then
-    return 0
-  else
-    return 1
-  fi
+  [[ -n "${OPT_NAME}" && -n "${OPT_FIREWALL}" ]] && return 0
+}
+
+function domain_mode () {
+  debug "${FUNCNAME[0]}" "$@"
+
+  [[ -n "${OPT_NAME}" && -n "${OPT_DOMAIN}" ]] && return 0
 }
 
 function create_mode () {
   debug "${FUNCNAME[0]}" "$@"
 
-  if [[ -n "${OPT_CREATE}" ]]; then
-    return 0
-  else
-    return 1
-  fi
+  [[ -n "${OPT_CREATE}" ]] && return 0
 }
 
 function expunge_mode () {
   debug "${FUNCNAME[0]}" "$@"
 
-  if [[ -n "${OPT_EXPUNGE}" ]]; then
-    return 0
-  else
-    return 1
-  fi
+  [[ -n "${OPT_EXPUNGE}" ]] && return 0
 }
 
 function rename_mode () {
   debug "${FUNCNAME[0]}" "$@"
 
-  if [[ -n "${OPT_RENAME}" ]]; then
-    return 0
-  else
-    return 1
-  fi
+  [[ -n "${OPT_RENAME}" ]] && return 0
 }
 
 function power_mode () {
   debug "${FUNCNAME[0]}" "$@"
 
-  if [[ -n "${OPT_POWER}" ]]; then
-    return 0
-  else
-    retun 1
-  fi
+  [[ -n "${OPT_POWER}" ]] && return 0
 }
 
 function handle_power_mode () {
@@ -571,6 +628,8 @@ function run () {
       create_database
     elif firewall_mode; then
       create_firewall
+    elif domain_mode; then
+      create_domain
     else
       display_usage
     fi
@@ -581,6 +640,8 @@ function run () {
       expunge_database
     elif firewall_mode; then
       expunge_firewall
+    elif domain_mode; then
+      expunge_domain
     else
       display_usage
     fi

@@ -89,6 +89,21 @@ To display the list of firewalls, run:
     doadm -lf
 
 
+### <a name="domains">Domains</a>
+
+To create a subdomain `home` under the TLD `streamsharing.io`, pointing to `161.35.122.135`, run:
+
+    doadm -cDn streamsharing.io -s home -A 161.35.122.135
+
+To expunge the subdomain `home` from `streamsharing.io`, run:
+
+    doadm -xDn streamsharing.io -s home
+
+To list the domains under `streamsharing.io`, run:
+
+    doadm -lDn streamsharing.io
+
+
 ### <a name="miscellany">Miscellany</a>
 
 To display usage summary, run:

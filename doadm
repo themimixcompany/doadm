@@ -5,7 +5,7 @@ set -euo pipefail
 readonly SELF="$(basename ${BASH_SOURCE[0]})"
 readonly SELF_DIR="$(cd $(dirname ${BASH_SOURCE[0]}) > /dev/null 2>&1 && pwd)"
 readonly OS="$(uname)"
-readonly VERSION="1.4.0"
+readonly VERSION="1.4.3"
 
 OPT_HELP=
 OPT_DEBUG=
@@ -283,7 +283,7 @@ function list_droplets_short () {
 function get_droplet_id () {
   debug "${FUNCNAME[0]}" "$@"
 
-  list_droplets | awk "/[0-9]+\s+${1}/" | awk '{print $1}'
+  list_droplets | awk '{print $1 " " $2}' | egrep "[0-9]+\s+${1}$" | awk '{print $1}'
 }
 
 function get_droplet_ids () {
@@ -545,7 +545,7 @@ function expunge_domain () {
   local id="$(get_domain_id ${OPT_RECORD_TYPE} ${OPT_SUBDOMAIN})"
 
   if [[ -n "${OPT_NAME}" && -n "${OPT_RECORD_TYPE}" && -n "${OPT_SUBDOMAIN}" && -n "${id}" ]]; then
-    echo "${id} ${OPT_RECORD_TYPE} ${OPT_SUBDOMAIN} ${OPT_NAME}"
+    echo "${id} ${OPT_RECORD_TYPE} ${OPT_SUBDOMAIN}.${OPT_NAME}"
     if [[ -n "${OPT_FORCE}" ]]; then
       doctl compute domain records delete --force "${OPT_NAME}" "${id}" || true
     else

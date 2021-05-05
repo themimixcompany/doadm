@@ -53,7 +53,7 @@ OPT_RECORD_TYPE="A"
 OPT_FORCE=
 OPT_POWER=
 
-function error () {
+function error {
   if [[ "${OS}" == "Darwin" ]]; then
     echo "ERROR: ${@}" >&2
   else
@@ -63,7 +63,7 @@ function error () {
   exit 1
 }
 
-function warn () {
+function warn {
   if [[ "${OS}" == "Darwin" ]]; then
     echo "WARNING: ${@}" >&2
   else
@@ -71,7 +71,7 @@ function warn () {
   fi
 }
 
-function debug () {
+function debug {
   if [[ -n "${OPT_DEBUG}" ]]; then
     echo -n "** "
     echo "\${PWD}: ${PWD}"
@@ -79,7 +79,7 @@ function debug () {
   fi
 }
 
-function parse_arguments () {
+function parse_arguments {
   debug "${FUNCNAME[0]}" "$@"
 
   local opts=$(getopt -n "${SELF}" --options IcxrdbfDn:N:k:Lli:g:z:E:G:Z:V:a:X:SA:P:s:t:oO --longoptions help,debug,verbose,version,init,create,expunge,rename,droplet,database,firewall,domain,name:,new-name:,ssh-key:,list,list-short,droplet-image:,droplet-region:,droplet-size:,database-engine:,database-region:,database-size:,database-version:,add-droplets:,expunge-droplets:,add-self-address,addresses:,ports:,subdomain:,record-type:,force,power-on,power-off -- "$@")
@@ -132,7 +132,7 @@ function parse_arguments () {
   done
 }
 
-function process_arguments () {
+function process_arguments {
   debug "${FUNCNAME[0]}" "$@"
 
   if [[ -n "${OPT_HELP}" || "${#}" -lt 1 ]]; then
@@ -182,7 +182,7 @@ function process_arguments () {
   fi
 }
 
-function display_usage () {
+function display_usage {
   debug "${FUNCNAME[0]}" "$@"
 
   cat << EOF
@@ -200,7 +200,7 @@ OPTIONS:
   -d, --droplet           Knob to set droplet operations
   -b, --database          Knob to set database operations
   -f, --firewall          Knob to set database operations
-  -D, --domain               Knob to set DOMAIN operations
+  -D, --domain            Knob to set DOMAIN operations
   -n, --name              The name of the droplet, database, or firewall to manage
   -N, --new-name          The new name of the droplet
   -K, --ssh-key           Set the allowed SSH key for the droplet
@@ -227,7 +227,7 @@ EOF
   exit 0
 }
 
-function display_version () {
+function display_version {
   debug "${FUNCNAME[0]}" "$@"
 
   cat << EOF
@@ -236,7 +236,7 @@ EOF
   exit 0
 }
 
-function read_config () {
+function read_config {
   debug "${FUNCNAME[0]}" "$@"
 
   if [[ -n "${OPT_CONFIG}" ]]; then
@@ -262,31 +262,31 @@ function read_config () {
   fi
 }
 
-function init () {
+function init {
   debug "${FUNCNAME[0]}" "$@"
 
   doctl auth init
 }
 
-function list_droplets () {
+function list_droplets {
   debug "${FUNCNAME[0]}" "$@"
 
   doctl compute droplet list
 }
 
-function list_droplets_short () {
+function list_droplets_short {
   debug "${FUNCNAME[0]}" "$@"
 
   list_droplets | sed 1d | awk '{print $1 " " $2 " " $3}' | column -t
 }
 
-function get_droplet_id () {
+function get_droplet_id {
   debug "${FUNCNAME[0]}" "$@"
 
   list_droplets | awk '{print $1 " " $2}' | egrep "[0-9]+\s+${1}$" | awk '{print $1}'
 }
 
-function get_droplet_ids () {
+function get_droplet_ids {
   debug "${FUNCNAME[0]}" "$@"
 
   local OIFS=${IFS}
@@ -300,7 +300,7 @@ function get_droplet_ids () {
   IFS=${OIFS}
 }
 
-function create_droplet () {
+function create_droplet {
   debug "${FUNCNAME[0]}" "$@"
 
   doctl compute droplet create \
@@ -313,7 +313,7 @@ function create_droplet () {
         "${OPT_NAME}" | sed 1d | awk '{print $3}'
 }
 
-function expunge_droplet () {
+function expunge_droplet {
   debug "${FUNCNAME[0]}" "$@"
 
   for id in $(get_droplet_id ${OPT_NAME}); do
@@ -326,7 +326,7 @@ function expunge_droplet () {
   done
 }
 
-function rename_droplet () {
+function rename_droplet {
   debug "${FUNCNAME[0]}" "$@"
 
   for id in $(get_droplet_id ${OPT_NAME}); do
@@ -335,25 +335,25 @@ function rename_droplet () {
   done
 }
 
-function list_databases () {
+function list_databases {
   debug "${FUNCNAME[0]}" "$@"
 
   doctl databases list
 }
 
-function list_databases_short () {
+function list_databases_short {
   debug "${FUNCNAME[0]}" "$@"
 
   list_databases | sed 1d | awk '{print $1 " " $2}' | column -t
 }
 
-function get_database_id () {
+function get_database_id {
   debug "${FUNCNAME[0]}" "$@"
 
   list_databases | awk "/[0-9]+\s+${1}/" | awk '{print $1}'
 }
 
-function create_database () {
+function create_database {
   debug "${FUNCNAME[0]}" "$@"
 
   doctl databases create \
@@ -364,7 +364,7 @@ function create_database () {
         "${OPT_NAME}" | sed 1d | awk '{print $9}'
 }
 
-function expunge_database () {
+function expunge_database {
   debug "${FUNCNAME[0]}" "$@"
 
   local id="$(get_database_id ${OPT_NAME})"
@@ -379,25 +379,25 @@ function expunge_database () {
   fi
 }
 
-function list_firewalls () {
+function list_firewalls {
   debug "${FUNCNAME[0]}" "$@"
 
   doctl compute firewall list
 }
 
-function list_firewalls_short () {
+function list_firewalls_short {
   debug "${FUNCNAME[0]}" "$@"
 
   list_firewalls | sed 1d | awk '{print $1 " " $2}' | column -t
 }
 
-function get_firewall_id () {
+function get_firewall_id {
   debug "${FUNCNAME[0]}" "$@"
 
   list_firewalls_short | egrep " ${1}$" | awk '{print $1}'
 }
 
-function extra_addresses () {
+function extra_addresses {
   debug "${FUNCNAME[0]}" "$@"
 
   if [[ -n "${OPT_ADD_SELF_ADDRESS}" ]]; then
@@ -405,7 +405,7 @@ function extra_addresses () {
   fi
 }
 
-function compose_addresses () {
+function compose_addresses {
   debug "${FUNCNAME[0]}" "$@"
 
   local _extra=$(extra_addresses)
@@ -426,7 +426,7 @@ function compose_addresses () {
   IFS=${OIFS}
 }
 
-function compose_inbound_rules () {
+function compose_inbound_rules {
   debug "${FUNCNAME[0]}" "$@"
 
   local OIFS=${IFS}
@@ -439,7 +439,7 @@ function compose_inbound_rules () {
   IFS=${OIFS}
 }
 
-function create_firewall () {
+function create_firewall {
   debug "${FUNCNAME[0]}" "$@"
 
   local firewall_id="$(get_firewall_id ${OPT_NAME})"
@@ -479,7 +479,7 @@ function create_firewall () {
   fi
 }
 
-function expunge_firewall () {
+function expunge_firewall {
   debug "${FUNCNAME[0]}" "$@"
 
   local id="$(get_firewall_id ${OPT_NAME})"
@@ -494,7 +494,7 @@ function expunge_firewall () {
   fi
 }
 
-function list_domains () {
+function list_domains {
   debug "${FUNCNAME[0]}" "$@"
 
   if [[ -n "${OPT_NAME}" ]]; then
@@ -506,7 +506,7 @@ function list_domains () {
   fi
 }
 
-function list_domains_short () {
+function list_domains_short {
   debug "${FUNCNAME[0]}" "$@"
 
   if [[ -n "${OPT_NAME}" ]]; then
@@ -519,7 +519,7 @@ function list_domains_short () {
   fi
 }
 
-function create_domain () {
+function create_domain {
   debug "${FUNCNAME[0]}" "$@"
 
   if [[ -n "${OPT_NAME}" && -n "${OPT_RECORD_TYPE}" && -n "${OPT_SUBDOMAIN}" && -n "${OPT_ADDRESSES}" ]]; then
@@ -533,13 +533,13 @@ function create_domain () {
   fi
 }
 
-function get_domain_id () {
+function get_domain_id {
   debug "${FUNCNAME[0]}" "$@"
 
   list_domains | awk "/[0-9]+\s+${1}\s+${2}\s+/" | awk '{print $1}'
 }
 
-function expunge_domain () {
+function expunge_domain {
   debug "${FUNCNAME[0]}" "$@"
 
   local id="$(get_domain_id ${OPT_RECORD_TYPE} ${OPT_SUBDOMAIN})"
@@ -556,55 +556,55 @@ function expunge_domain () {
   fi
 }
 
-function droplet_mode () {
+function droplet_mode {
   debug "${FUNCNAME[0]}" "$@"
 
   [[ -n "${OPT_NAME}" && -n "${OPT_DROPLET}" ]] && return 0
 }
 
-function database_mode () {
+function database_mode {
   debug "${FUNCNAME[0]}" "$@"
 
   [[ -n "${OPT_NAME}" && -n "${OPT_DATABASE}" ]] && return 0
 }
 
-function firewall_mode () {
+function firewall_mode {
   debug "${FUNCNAME[0]}" "$@"
 
   [[ -n "${OPT_NAME}" && -n "${OPT_FIREWALL}" ]] && return 0
 }
 
-function domain_mode () {
+function domain_mode {
   debug "${FUNCNAME[0]}" "$@"
 
   [[ -n "${OPT_NAME}" && -n "${OPT_DOMAIN}" ]] && return 0
 }
 
-function create_mode () {
+function create_mode {
   debug "${FUNCNAME[0]}" "$@"
 
   [[ -n "${OPT_CREATE}" ]] && return 0
 }
 
-function expunge_mode () {
+function expunge_mode {
   debug "${FUNCNAME[0]}" "$@"
 
   [[ -n "${OPT_EXPUNGE}" ]] && return 0
 }
 
-function rename_mode () {
+function rename_mode {
   debug "${FUNCNAME[0]}" "$@"
 
   [[ -n "${OPT_RENAME}" ]] && return 0
 }
 
-function power_mode () {
+function power_mode {
   debug "${FUNCNAME[0]}" "$@"
 
   [[ -n "${OPT_POWER}" ]] && return 0
 }
 
-function handle_power_mode () {
+function handle_power_mode {
   debug "${FUNCNAME[0]}" "$@"
 
   local id="$(get_droplet_id ${OPT_NAME})"
@@ -618,7 +618,7 @@ function handle_power_mode () {
   return 1
 }
 
-function run () {
+function run {
   debug "${FUNCNAME[0]}" "$@"
 
   if create_mode; then
@@ -663,7 +663,7 @@ function run () {
   fi
 }
 
-function main () {
+function main {
   debug "${FUNCNAME[0]}" "$@"
 
   parse_arguments "$@"
